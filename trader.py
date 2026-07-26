@@ -118,7 +118,6 @@ class KalshiMarketTrading:
         price_dollars = price_limit / 100
         return self._make_authenticated_request("POST", "/portfolio/events/orders", {
             "ticker": ticker,
-            "client_order_id": str(uuid.uuid4()),
             "side": "bid",
             "count": str(int(quantity)),
             "price": f"{price_dollars:.3f}",
@@ -136,7 +135,6 @@ class KalshiMarketTrading:
         price_dollars = price_limit / 100
         return self._make_authenticated_request("POST", "/portfolio/events/orders", {
             "ticker": ticker,
-            "client_order_id": str(uuid.uuid4()),
             "side": "ask",
             "count": str(int(quantity)),
             "price": f"{price_dollars:.3f}",
