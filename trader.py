@@ -238,8 +238,9 @@ if __name__ == "__main__":
                     # print(f"Buy order: {buy_result}")
                     print(f'Bought {UNIT_SIZE} shares for {team} at {ask_price} cents.', flush=True)
                     # print(f"Ask price {ask_price} cents is below buy target {buy_target} cents")
-                except:
-                    print(f'Unsuccessful buy for {team}.', flush=True)
+                except Exception as e:
+                    print(f'Unsuccessful buy attempt: {e}')
+                    sys.exit()
     
             # if bid_price > sell_target:
             #     try:
@@ -247,8 +248,6 @@ if __name__ == "__main__":
             #         # print(f"Sell order: {sell_result}")
             #         print(f'Sold {UNIT_SIZE} shares for {team} at {bid_price} cents.')
             #         # print(f"Bid price {bid_price} cents is above sell target {sell_target} cents")
-            #     except:
-            #         print(f'Unsuccessful sell for {team}.')
                 
         time.sleep(5)
         count += 1
