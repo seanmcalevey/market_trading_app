@@ -218,8 +218,8 @@ if __name__ == "__main__":
             buy_target = expected_cents * (1 - BUFFER)
         
             print(f"Team: {team}", flush=True)
-            print(f"Buy target: {buy_target} cents", flush=True)
-            print(f"Sell target: {sell_target} cents", flush=True)
+            print(f"Buy target: {round(buy_target, 2)} cents", flush=True)
+            print(f"Sell target: {round(sell_target, 2)} cents", flush=True)
     
             # print(f"Market: {market}")
             ask_price = round(float(market['market']['yes_ask_dollars']) * 100, 2)
@@ -227,8 +227,8 @@ if __name__ == "__main__":
             bid_price = round(float(market['market']['yes_bid_dollars']) * 100, 2)
             bid_amount = market['market']['yes_bid_size_fp']
     
-            print(f"Market ask (price, amount): {ask_price} cents, {ask_amount} shares", flush=True)
-            print(f"Market bid (price, amount): {bid_price} cents, {bid_amount} shares", flush=True)
+            print(f"Market ask (price, amount): {round(ask_price, 2)} cents, {ask_amount} shares", flush=True)
+            print(f"Market bid (price, amount): {round(bid_price, 2)} cents, {bid_amount} shares", flush=True)
     
             if ask_price < buy_target:
                 try:
