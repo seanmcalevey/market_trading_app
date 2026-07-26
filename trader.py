@@ -182,8 +182,8 @@ if __name__ == "__main__":
         kalshi_tickers = json.load(f)
         # kalshi_ticker = tickers.get(team)
 
-    with open('x_value.json', 'r') as f:
-        team_expected_values = json.load(f)
+    # with open('x_value.json', 'r') as f:
+    #     team_expected_values = json.load(f)
         # expected_cents_value = team_values.get(team)
         # Convert to float, default to 0 if empty or missing
         # expected_cents = float(expected_cents_value) if expected_cents_value else 0
