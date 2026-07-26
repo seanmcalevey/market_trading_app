@@ -19,6 +19,7 @@ PRIVATE_KEY_PATH = 'private_key.pem'
 BUFFER = .1
 TOTAL_MAX = 100
 UNIT_SIZE = 1
+TEAM_LIST = ['Cleveland Guardians', 'Tampa Bay Rays', 'Houston Astros']
 
 class KalshiMarketTrading:
 
@@ -143,14 +144,14 @@ if __name__ == "__main__":
 
     team = "Cleveland Guardians"
     with open('mlb_teams.json', 'r') as f:
-        tickers = json.load(f)
-        kalshi_ticker = tickers.get(team)
+        kalshi_tickers = json.load(f)
+        # kalshi_ticker = tickers.get(team)
 
     with open('x_value.json', 'r') as f:
-        team_values = json.load(f)
-        expected_cents_value = team_values.get(team)
+        team_expected_values = json.load(f)
+        # expected_cents_value = team_values.get(team)
         # Convert to float, default to 0 if empty or missing
-        expected_cents = float(expected_cents_value) if expected_cents_value else 0
+        # expected_cents = float(expected_cents_value) if expected_cents_value else 0
 
     # "KXMLB-26-PHI"
 
@@ -164,43 +165,50 @@ if __name__ == "__main__":
     portfolio = trader.get_portfolio()
     print("Portfolio: ")
     print(portfolio)
-
-    # Expected range
-    sell_target = expected_cents * (1 + BUFFER)
-    buy_target = expected_cents * (1 - BUFFER)
-
-    print(f"Team: {team}")
-    print(f"Buy target: {buy_target} cents")
-    print(f"Sell target: {sell_target} cents")
     
     # Get market info
     count = 0
-    amount_max = 10
+    amount_max = 10000
     while count < amount_max:
 
-        market = trader.get_market(kalshi_ticker)
+        for team in TEAM_LIST:
 
-        # print(f"Market: {market}")
-        ask_price = round(float(market['market']['yes_ask_dollars']) * 100, 2)
-        ask_amount = market['market']['yes_ask_size_fp']
-        bid_price = round(float(market['market']['yes_bid_dollars']) * 100, 2)
-        bid_amount = market['market']['yes_bid_size_fp']
+            kalshi_ticker = tickers.get(team)
+            market = trader.get_market(kalshi_ticker)
 
-        print(f"Market ask (price, amount): {ask_price} cents, {ask_amount} shares")
-        print(f"Market bid (price, amount): {bid_price} cents, {bid_amount} shares")
+            expected_cents_value = team_expected_values.get(team)
+            expected_cents = float(expected_cents_value) if expected_cents_value else 0
 
-        if ask_price < buy_target:
-            buy_result = trader.buy_shares(kalshi_ticker, quantity=UNIT_SIZE, price_limit=ask_price)
-            # print(f"Buy order: {buy_result}")
-            print(f'Bought {UNIT_SIZE} shares at {ask_price} cents')
-            # print(f"Ask price {ask_price} cents is below buy target {buy_target} cents")
-
-        # if bid_price > sell_target:
-        # #     sell_result = trader.sell_shares(kalshi_ticker, quantity=UNIT_SIZE, price_limit=bid_price)
-        # #     print(f"Sell order: {sell_result}")
-        #     print(f"Bid price {bid_price} cents is above sell target {sell_target} cents")
-
-        time.sleep(30)
+            # Expected range
+            sell_target = expected_cents * (1 + BUFFER)
+            buy_target = expected_cents * (1 - BUFFER)
+        
+            print(f"Team: {team}")
+            print(f"Buy target: {buy_target} cents")
+            print(f"Sell target: {sell_target} cents")
+    
+            # print(f"Market: {market}")
+            ask_price = round(float(market['market']['yes_ask_dollars']) * 100, 2)
+            ask_amount = market['market']['yes_ask_size_fp']
+            bid_price = round(float(market['market']['yes_bid_dollars']) * 100, 2)
+            bid_amount = market['market']['yes_bid_size_fp']
+    
+            print(f"Market ask (price, amount): {ask_price} cents, {ask_amount} shares")
+            print(f"Market bid (price, amount): {bid_price} cents, {bid_amount} shares")
+    
+            if ask_price < buy_target:
+                buy_result = trader.buy_shares(kalshi_ticker, quantity=UNIT_SIZE, price_limit=ask_price)
+                # print(f"Buy order: {buy_result}")
+                print(f'Bought {UNIT_SIZE} shares at {ask_price} cents')
+                # print(f"Ask price {ask_price} cents is below buy target {buy_target} cents")
+    
+            if bid_price > sell_target:
+                sell_result = trader.sell_shares(kalshi_ticker, quantity=UNIT_SIZE, price_limit=bid_price)
+            #     print(f"Sell order: {sell_result}")
+                print(f'Bought {UNIT_SIZE} shares at {bid_price} cents')
+                # print(f"Bid price {bid_price} cents is above sell target {sell_target} cents")
+                
+        time.sleep(5)
         count += 1
 
     sys.exit()
