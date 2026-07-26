@@ -208,7 +208,7 @@ if __name__ == "__main__":
 
         for team in TEAM_LIST:
 
-            kalshi_ticker = tickers.get(team)
+            kalshi_ticker = kalshi_tickers.get(team)
             market = trader.get_market(kalshi_ticker)
 
             # expected_cents_value = team_expected_values.get(team)
