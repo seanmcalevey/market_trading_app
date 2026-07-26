@@ -219,9 +219,9 @@ if __name__ == "__main__":
             sell_target = expected_cents * (1 + BUFFER)
             buy_target = expected_cents * (1 - BUFFER)
         
-            print(f"Team: {team}")
-            print(f"Buy target: {buy_target} cents")
-            print(f"Sell target: {sell_target} cents")
+            print(f"Team: {team}", flush=True)
+            print(f"Buy target: {buy_target} cents", flush=True)
+            print(f"Sell target: {sell_target} cents", flush=True)
     
             # print(f"Market: {market}")
             ask_price = round(float(market['market']['yes_ask_dollars']) * 100, 2)
@@ -229,17 +229,17 @@ if __name__ == "__main__":
             bid_price = round(float(market['market']['yes_bid_dollars']) * 100, 2)
             bid_amount = market['market']['yes_bid_size_fp']
     
-            print(f"Market ask (price, amount): {ask_price} cents, {ask_amount} shares")
-            print(f"Market bid (price, amount): {bid_price} cents, {bid_amount} shares")
+            print(f"Market ask (price, amount): {ask_price} cents, {ask_amount} shares", flush=True)
+            print(f"Market bid (price, amount): {bid_price} cents, {bid_amount} shares", flush=True)
     
             if ask_price < buy_target:
                 try:
                     buy_result = trader.buy_shares(kalshi_ticker, quantity=UNIT_SIZE, price_limit=ask_price)
                     # print(f"Buy order: {buy_result}")
-                    print(f'Bought {UNIT_SIZE} shares for {team} at {ask_price} cents.')
+                    print(f'Bought {UNIT_SIZE} shares for {team} at {ask_price} cents.', flush=True)
                     # print(f"Ask price {ask_price} cents is below buy target {buy_target} cents")
                 except:
-                    print(f'Unsuccessful buy for {team}.')
+                    print(f'Unsuccessful buy for {team}.', flush=True)
     
             # if bid_price > sell_target:
             #     try:
