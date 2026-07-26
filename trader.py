@@ -160,7 +160,7 @@ class KalshiMarketTrading:
             conn = psycopg2.connect(DB_URL)
             cur = conn.cursor()
             # Example query: get a threshold or setting from a configuration table
-            cur.execute(f"SELECT team FROM team_values WHERE team = '{team}';")
+            cur.execute(f"SELECT value FROM team_values WHERE team = '{team}';")
             value = cur.fetchone()[0]
             cur.close()
             conn.close()
@@ -241,14 +241,14 @@ if __name__ == "__main__":
                 except:
                     print(f'Unsuccessful buy for {team}.')
     
-            if bid_price > sell_target:
-                try:
-                    sell_result = trader.sell_shares(kalshi_ticker, quantity=UNIT_SIZE, price_limit=bid_price)
-                    # print(f"Sell order: {sell_result}")
-                    print(f'Sold {UNIT_SIZE} shares for {team} at {bid_price} cents.')
-                    # print(f"Bid price {bid_price} cents is above sell target {sell_target} cents")
-                except:
-                    print(f'Unsuccessful sell for {team}.')
+            # if bid_price > sell_target:
+            #     try:
+            #         sell_result = trader.sell_shares(kalshi_ticker, quantity=UNIT_SIZE, price_limit=bid_price)
+            #         # print(f"Sell order: {sell_result}")
+            #         print(f'Sold {UNIT_SIZE} shares for {team} at {bid_price} cents.')
+            #         # print(f"Bid price {bid_price} cents is above sell target {sell_target} cents")
+            #     except:
+            #         print(f'Unsuccessful sell for {team}.')
                 
         time.sleep(5)
         count += 1
