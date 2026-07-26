@@ -14,7 +14,8 @@ import base64
 # Use external-api.kalshi.com for production or external-api.demo.kalshi.co for demo
 KALSHI_API_URL = "https://external-api.kalshi.com/trade-api/v2"
 API_KEY_ID = "cc9f7a70-b6f3-482c-b573-8a77a53557eb"
-PRIVATE_KEY_PATH = os.path.expanduser("~/.ssh/id_rsa_kalshi.pub")
+PRIVATE_KEY_PATH = 'private_key.pem'
+# PRIVATE_KEY_PATH = os.path.expanduser("~/.ssh/id_rsa_kalshi.pub")
 BUFFER = .1
 TOTAL_MAX = 100
 UNIT_SIZE = 1
