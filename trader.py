@@ -9,17 +9,19 @@ from cryptography.hazmat.primitives import serialization, hashes
 from cryptography.hazmat.primitives.asymmetric import padding
 from cryptography.hazmat.backends import default_backend
 import base64
+import psycopg2
 
 # Kalshi API configuration
 # Use external-api.kalshi.com for production or external-api.demo.kalshi.co for demo
 KALSHI_API_URL = "https://external-api.kalshi.com/trade-api/v2"
 API_KEY_ID = "cc9f7a70-b6f3-482c-b573-8a77a53557eb"
+DB_URL = os.environ.get("DATABASE_URL")
 PRIVATE_KEY_PATH = 'private_key.pem'
 # PRIVATE_KEY_PATH = os.path.expanduser("~/.ssh/id_rsa_kalshi.pub")
 BUFFER = .1
 TOTAL_MAX = 100
 UNIT_SIZE = 1
-TEAM_LIST = ['Cleveland Guardians', 'Tampa Bay Rays', 'Houston Astros']
+TEAM_LIST = ['Cleveland Guardians', 'Tampa Bay Rays']
 
 class KalshiMarketTrading:
 
@@ -112,28 +114,61 @@ class KalshiMarketTrading:
         return self._make_authenticated_request("GET", f"/markets/{ticker}")
     
     def buy_shares(self, ticker, quantity, price_limit):
-        return self._make_authenticated_request("POST", "/orders", {
+        # Convert price from cents to dollars
+        price_dollars = price_limit / 100
+        return self._make_authenticated_request("POST", "/portfolio/events/orders", {
             "ticker": ticker,
-            "side": "BUY",
-            "quantity": quantity,
-            "action": "create",
-            "type": "limit",
-            "limit_price": price_limit
+            "client_order_id": str(uuid.uuid4()),
+            "side": "bid",
+            "count": str(int(quantity)),
+            "price": f"{price_dollars:.3f}",
+            "time_in_force": "good_till_canceled",
+            "self_trade_prevention_type": "taker_at_cross",
+            "post_only": False,
+            "cancel_order_on_pause": False,
+            "reduce_only": False,
+            "subaccount": 0,
+            "exchange_index": 0
         })
     
     def sell_shares(self, ticker, quantity, price_limit):
-        return self._make_authenticated_request("POST", "/orders", {
+        # Convert price from cents to dollars
+        price_dollars = price_limit / 100
+        return self._make_authenticated_request("POST", "/portfolio/events/orders", {
             "ticker": ticker,
-            "side": "SELL",
-            "quantity": quantity,
-            "action": "create",
-            "type": "limit",
-            "limit_price": price_limit
+            "client_order_id": str(uuid.uuid4()),
+            "side": "ask",
+            "count": str(int(quantity)),
+            "price": f"{price_dollars:.3f}",
+            "time_in_force": "good_till_canceled",
+            "self_trade_prevention_type": "taker_at_cross",
+            "post_only": False,
+            "cancel_order_on_pause": False,
+            "reduce_only": False,
+            "subaccount": 0,
+            "exchange_index": 0
         })
     
     def get_portfolio(self):
         return self._make_authenticated_request("GET", "/portfolio/balance")
 
+    
+
+    def get_current_team_value(self, team):
+        """Reads a variable value from the database"""
+        try:
+            conn = psycopg2.connect(DB_URL)
+            cur = conn.cursor()
+            # Example query: get a threshold or setting from a configuration table
+            cur.execute(f"SELECT team FROM team_values WHERE team = '{team}';")
+            value = cur.fetchone()[0]
+            cur.close()
+            conn.close()
+            return value
+            
+        except Exception as e:
+            print(f"Database read error: {e}")
+            return None
 
 
 
@@ -142,7 +177,7 @@ class KalshiMarketTrading:
 
 if __name__ == "__main__":
 
-    team = "Cleveland Guardians"
+    # team = "Cleveland Guardians"
     with open('mlb_teams.json', 'r') as f:
         kalshi_tickers = json.load(f)
         # kalshi_ticker = tickers.get(team)
@@ -176,7 +211,8 @@ if __name__ == "__main__":
             kalshi_ticker = tickers.get(team)
             market = trader.get_market(kalshi_ticker)
 
-            expected_cents_value = team_expected_values.get(team)
+            # expected_cents_value = team_expected_values.get(team)
+            expected_cents_value = trader.get_current_team_value(team)
             expected_cents = float(expected_cents_value) if expected_cents_value else 0
 
             # Expected range
@@ -197,16 +233,22 @@ if __name__ == "__main__":
             print(f"Market bid (price, amount): {bid_price} cents, {bid_amount} shares")
     
             if ask_price < buy_target:
-                buy_result = trader.buy_shares(kalshi_ticker, quantity=UNIT_SIZE, price_limit=ask_price)
-                # print(f"Buy order: {buy_result}")
-                print(f'Bought {UNIT_SIZE} shares at {ask_price} cents')
-                # print(f"Ask price {ask_price} cents is below buy target {buy_target} cents")
+                try:
+                    buy_result = trader.buy_shares(kalshi_ticker, quantity=UNIT_SIZE, price_limit=ask_price)
+                    # print(f"Buy order: {buy_result}")
+                    print(f'Bought {UNIT_SIZE} shares for {team} at {ask_price} cents.')
+                    # print(f"Ask price {ask_price} cents is below buy target {buy_target} cents")
+                except:
+                    print(f'Unsuccessful buy for {team}.')
     
             if bid_price > sell_target:
-                sell_result = trader.sell_shares(kalshi_ticker, quantity=UNIT_SIZE, price_limit=bid_price)
-            #     print(f"Sell order: {sell_result}")
-                print(f'Bought {UNIT_SIZE} shares at {bid_price} cents')
-                # print(f"Bid price {bid_price} cents is above sell target {sell_target} cents")
+                try:
+                    sell_result = trader.sell_shares(kalshi_ticker, quantity=UNIT_SIZE, price_limit=bid_price)
+                    # print(f"Sell order: {sell_result}")
+                    print(f'Sold {UNIT_SIZE} shares for {team} at {bid_price} cents.')
+                    # print(f"Bid price {bid_price} cents is above sell target {sell_target} cents")
+                except:
+                    print(f'Unsuccessful sell for {team}.')
                 
         time.sleep(5)
         count += 1
