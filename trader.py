@@ -501,6 +501,8 @@ if __name__ == "__main__":
 
     # Open Orders
     open_orders_dict = trader.get_open_orders_as_json()
+    if open_orders_dict == None:
+        open_orders_dict = {t: (None, None) for t in TEAM_LIST}
 
     # Net Session Purchases by Team
     net_session_team_purchases = trader.get_net_trade_table_as_json()
