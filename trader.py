@@ -274,7 +274,8 @@ if __name__ == "__main__":
                     print(f'\n...!!! Bought {UNIT_SIZE} shares for {team} at {ask_price} cents !!!...\n', flush=True)
                             
                     # print(f"Ask price {ask_price} cents is below buy target {buy_target} cents")
-                    buy_count += UNIT_SIZE
+                    total_purchase = UNIT_SIZE * ask_price
+                    buy_count += total_purchase
                     trader.update_buy_sell_count(team, buy_count=buy_count)
                     
                 except Exception as e:
@@ -297,12 +298,13 @@ if __name__ == "__main__":
                         print(f'\n...!!! Sold {UNIT_SIZE} shares for {team} at {bid_price} cents!!!...\n')
                         # print(f"Bid price {bid_price} cents is above sell target {sell_target} cents")
                         
-                        sell_count += UNIT_SIZE
+                        total_purchase = UNIT_SIZE * bid_price
+                        sell_count += total_purchase
                         trader.update_buy_sell_count(team, sell_count=sell_count)
                         
                             
                     except Exception as e:
-                        print(f'Unsuccessful buy attempt: {e}')
+                        print(f'Unsuccessful buy attempt: {e}', flush=True)
                         unsuccessful_attempts += 1
                         if unsuccessful_attempts > max_unsuccessful:
                             sys.exit()
