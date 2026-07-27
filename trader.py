@@ -19,7 +19,7 @@ DB_URL = os.environ.get("DATABASE_URL")
 PRIVATE_KEY_PATH = 'private_key.pem'
 # PRIVATE_KEY_PATH = os.path.expanduser("~/.ssh/id_rsa_kalshi.pub")
 BUFFER = .2
-TOTAL_MAX = 100
+TOTAL_NET_PURCHASE_MAX = 100
 UNIT_SIZE = 1
 TEAM_LIST = ['Cleveland Guardians', 'Tampa Bay Rays', 'Minnesota Twins', 'Seattle Mariners', 'Texas Rangers', 'Detroit Tigers', 
             'Chicago Cubs', 'Pittsburgh Pirates']
@@ -232,7 +232,8 @@ if __name__ == "__main__":
     max_unsuccessful = 15
     count = 0
     amount_max = 10000
-    while count < amount_max:
+    net_session_purchases = 0
+    while (count < amount_max) and (net_session_purchases < TOTAL_NET_PURCHASE_MAX):
 
         for team in TEAM_LIST:
 
@@ -272,8 +273,10 @@ if __name__ == "__main__":
                     buy_result = trader.buy_shares(kalshi_ticker, quantity=UNIT_SIZE, price_limit=ask_price)
                     total_purchase = UNIT_SIZE * ask_price
                     all_time_purchase = round((buy_count + total_purchase) / 100, 2)
+                    net_session_purchases += all_time_purchase
                     # print(f"Buy order: {buy_result}")
-                    print(f'\n!!! Bought {UNIT_SIZE} shares for {team} at {ask_price} cents.\n!!! Session buy amount: ${all_time_purchase}!!!...\n', flush=True)
+                    print(f'\n!!! Bought {UNIT_SIZE} shares for {team} at {ask_price} cents', flush=True)
+                    print(f'!!! {team} session buy amount: ${all_time_purchase}!!!...\n', flush=True)
                             
                     # print(f"Ask price {ask_price} cents is below buy target {buy_target} cents")
                     total_purchase = UNIT_SIZE * ask_price
@@ -299,7 +302,9 @@ if __name__ == "__main__":
                         # print(f"Sell order: {sell_result}")
                         total_sell = UNIT_SIZE * bid_price
                         all_time_sell = round((sell_count + total_sell) / 100, 2)
-                        print(f'\n...!!! Sold {UNIT_SIZE} shares for {team} at {bid_price} cents.\n!!! Session sell amount: ${all_time_sell}!!!...\n')
+                        net_session_purchases -= all_time_sell
+                        print(f'\n...!!! Sold {UNIT_SIZE} shares for {team} at {bid_price} cents', flush=True)
+                        print(f'!!! {team} session sell amount: ${all_time_sell}!!!...\n', flush=True)
                         # print(f"Bid price {bid_price} cents is above sell target {sell_target} cents")
                         
                         total_purchase = UNIT_SIZE * bid_price
