@@ -241,11 +241,14 @@ class KalshiMarketTrading:
             cur.execute("SELECT * FROM net_trades;")
             rows = cur.fetchall()
             for row in rows:
-                # Columns: team, date, net_amount, net_shares, updated_at
+                # Columns: team, date, net_amount, net_shares
                 team = row[0]
                 net_amount = float(row[2]) if len(row) > 2 else 0
-                net_shares = int(row[3]) if len(row) > 3 else 0
-                net_table_dict[team] = (net_amount, net_shares)
+                net_shares = row[3] if len(row) > 3 else 0
+                if net_shares == None:
+                    print(f'Error processing net_shares for team {team}. NoneType...')
+                    sys.exit()
+                net_table_dict[team] = (net_amount, int(net_shares))
 
             cur.close()
             conn.close()
