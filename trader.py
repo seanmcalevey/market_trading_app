@@ -269,29 +269,30 @@ class KalshiMarketTrading:
             self.team_buy_sell_count[team] = {'buy': buy_count, 'sell': sell_count}
 
     def get_and_update_order_status(self, order_id):
-        order_return_status = self._make_authenticated_request("GET", f"/portfolio/orders/{order_id}")
-        order_data = order_return_status.get('order')
-        if order_data:
-            filled_orders = order_data.get('fill_count_fp')
-            open_orders = order_data.get('remaining_count_fp')
-            if float(open_orders) < MIN_OPEN_ORDERS:
-                net_transaction_amount = order_data.get('maker_fill_cost_dollars')
-                net_fees_amount = order_data.get('maker_fees_dollars')
+        if order_id:
+            order_return_status = self._make_authenticated_request("GET", f"/portfolio/orders/{order_id}")
+            order_data = order_return_status.get('order')
+            if order_data:
+                filled_orders = order_data.get('fill_count_fp')
+                open_orders = order_data.get('remaining_count_fp')
+                if float(open_orders) < MIN_OPEN_ORDERS:
+                    net_transaction_amount = order_data.get('maker_fill_cost_dollars')
+                    net_fees_amount = order_data.get('maker_fees_dollars')
 
-                # Cancel the open order
-                cancel_request_return = self._make_authenticated_request("DELETE", f"portfolio/events/orders/{order_id}")
-                if cancel_request_return:
-                    reduced_shares = cancel_request_return.get('reduced_by')
+                    # Cancel the open order
+                    cancel_request_return = self._make_authenticated_request("DELETE", f"portfolio/events/orders/{order_id}")
+                    if cancel_request_return:
+                        reduced_shares = cancel_request_return.get('reduced_by')
 
-                    # Safety check
-                    if open_orders != reduced_shares:
-                        print(f"\n\n !!! ERROR !!! \n\n")
-                        print(f"Error: open_shares ({open_orders}) for {team} does not match total reduced_shares ({reduced_shares}) upon closure of order_id {order_id}", flush=True)
-                        print(f"\n\n !!! ERROR !!! \n\n")
-                    else:
-                        print(f'Successfully cancelled open order {order_id} for team {team}...')
+                        # Safety check
+                        if open_orders != reduced_shares:
+                            print(f"\n\n !!! ERROR !!! \n\n")
+                            print(f"Error: open_shares ({open_orders}) for {team} does not match total reduced_shares ({reduced_shares}) upon closure of order_id {order_id}", flush=True)
+                            print(f"\n\n !!! ERROR !!! \n\n")
+                        else:
+                            print(f'Successfully cancelled open order {order_id} for team {team}...')
 
-                        return net_transaction_amount, net_fees_amount, filled_orders
+                            return net_transaction_amount, net_fees_amount, filled_orders
 
 
 
