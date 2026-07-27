@@ -16,7 +16,7 @@ def parse_db_url(url):
         'database': parsed.path.lstrip('/')
     }
 
-def initialize_database(table_name='team_values', col1_name='team', col2_name='value'):
+def initialize_database():
 
     with open('x_value.json', 'r') as f:
         team_values = json.load(f)
@@ -31,22 +31,25 @@ def initialize_database(table_name='team_values', col1_name='team', col2_name='v
         # 1. Create a configuration table
         print("Creating 'team_values' table...")
         cur.execute("""
-            CREATE TABLE IF NOT EXISTS %s (
-                %s VARCHAR(100) PRIMARY KEY,
-                %s VARCHAR(25) NOT NULL
+            CREATE TABLE IF NOT EXISTS team_values (
+                team VARCHAR(100) PRIMARY KEY,
+                value VARCHAR(25) NOT NULL
             );
-        """.format(table_name, col1_name, col2_name))
+        """)
 
         # 2. Insert your initial default values
         print("Inserting initial values...")
         for team in team_values:
             value = team_values.get(team)
-            cur.execute("""
+            cur.execute(
+                """
                 INSERT INTO team_values (team, value)
                 VALUES (%s, %s)
                 ON CONFLICT (team) DO UPDATE 
                 SET value = EXCLUDED.value;
-            """, (team, value))
+                """,
+                (team, value)
+            )
 
         # Commit changes and close connection
         conn.commit()
@@ -88,5 +91,5 @@ def view_table(table_name):
         print(f"An error occurred while viewing table: {e}")
 
 if __name__ == "__main__":
-    # initialize_database()
-    view_table('net_trades')
+    initialize_database()
+    view_table('team_values') # 'team_values' or 'net_trades'

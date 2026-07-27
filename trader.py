@@ -21,8 +21,10 @@ PRIVATE_KEY_PATH = 'private_key.pem'
 BUFFER = .2
 TOTAL_NET_PURCHASE_MAX = 150
 UNIT_SIZE = 1
-TEAM_LIST = ['Cleveland Guardians', 'Tampa Bay Rays', 'Minnesota Twins', 'Seattle Mariners', 'Texas Rangers', 'Detroit Tigers', 
-            'Chicago Cubs', 'Pittsburgh Pirates']
+TEAM_LIST = ['Cleveland Guardians', 'Tampa Bay Rays', 'Minnesota Twins',
+             'Seattle Mariners', 'Texas Rangers', 'Detroit Tigers', 
+            'Chicago Cubs', 'Pittsburgh Pirates', 'Baltimore Orioles',
+            'Philadelphia Phillies']
 MOMENTUM = True
 MOMENTUM_CAP = 20
 
