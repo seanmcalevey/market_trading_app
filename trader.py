@@ -361,24 +361,27 @@ if __name__ == "__main__":
             # Expected range
             sell_target = expected_cents * (1 + BUFFER)
             buy_target = expected_cents * (1 - BUFFER)
-        
-            print(f"Team: {team}", flush=True)
-            print(f"Buy target: {round(buy_target, 2)} cents", flush=True)
-            print(f"Sell target: {round(sell_target, 2)} cents", flush=True)
-    
-            # print(f"Market: {market}")
+
             ask_price = round(float(market['market']['yes_ask_dollars']) * 100, 2)
             ask_amount = market['market']['yes_ask_size_fp']
             bid_price = round(float(market['market']['yes_bid_dollars']) * 100, 2)
             bid_amount = market['market']['yes_bid_size_fp']
+
+            # Status every x runs
+            every_x_runs = 10
+            if count % every_x_runs == 0:
+                print(f"Team: {team}", flush=True)
+                print(f"Buy target: {round(buy_target, 2)} cents", flush=True)
+                print(f"Sell target: {round(sell_target, 2)} cents", flush=True)
+                print(f"Market ask (price, amount): {round(ask_price, 2)} cents, {ask_amount} shares", flush=True)
+                print(f"Market bid (price, amount): {round(bid_price, 2)} cents, {bid_amount} shares", flush=True)
     
-            print(f"Market ask (price, amount): {round(ask_price, 2)} cents, {ask_amount} shares", flush=True)
-            print(f"Market bid (price, amount): {round(bid_price, 2)} cents, {bid_amount} shares", flush=True)
+
 
             # Get buy-sell counts
             buy_count, sell_count = trader.get_buy_sell_count(team)
-            print(f'{team} buy count: {buy_count}', flush=True)
-            print(f'{team} sell count: {sell_count}', flush=True)
+            # print(f'{team} buy count: {buy_count}', flush=True)
+            # print(f'{team} sell count: {sell_count}', flush=True)
             
             
             # BUY SIDE
