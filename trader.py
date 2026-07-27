@@ -298,7 +298,7 @@ if __name__ == "__main__":
     net_session_purchases = 0
     net_session_team_purchases = trader.get_net_trade_table_as_json()
     if net_session_team_purchases == None:
-        net_session_team_purchases = {t: 0 for t in TEAM_LIST}
+        net_session_team_purchases = {t: (0, 0) for t in TEAM_LIST}
     while (count < amount_max) and (net_session_purchases < TOTAL_NET_PURCHASE_MAX):
 
         for team in TEAM_LIST:
