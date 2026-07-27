@@ -22,11 +22,11 @@ BUY_BUFFER, SELL_BUFFER = .15, .12
 TOTAL_NET_PURCHASE_MAX = 100
 UNIT_SIZE = 1
 MAKER_UNIT_SIZE, MIN_OPEN_ORDERS = 100, 25
-# TEAM_LIST = ['Cleveland Guardians', 'Tampa Bay Rays', 'Minnesota Twins',
-            #  'Seattle Mariners', 'Texas Rangers', 'Detroit Tigers', 
-            # 'Chicago Cubs', 'Pittsburgh Pirates', 'Baltimore Orioles',
-            # 'Philadelphia Phillies']
-TEAM_LIST = ['Texas Rangers']
+TEAM_LIST = ['Cleveland Guardians', 'Tampa Bay Rays', 'Minnesota Twins',
+             'Seattle Mariners', 'Texas Rangers', 'Detroit Tigers', 
+            'Chicago Cubs', 'Pittsburgh Pirates', 'Baltimore Orioles',
+            'Philadelphia Phillies']
+# TEAM_LIST = ['Texas Rangers']
 MOMENTUM = True
 MOMENTUM_CAP = 5
 
