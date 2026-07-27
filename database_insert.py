@@ -57,7 +57,7 @@ def initialize_database(table_name='team_values', col1_name='team', col2_name='v
     except Exception as e:
         print(f"An error occurred: {e}")
 
-def view_table():
+def view_table(table_name):
     """View all rows in the team_values table"""
     try:
         print("\nConnecting to the database to view table...")
@@ -66,14 +66,19 @@ def view_table():
         cur = conn.cursor()
 
         # Select all rows from team_values
-        cur.execute("SELECT * FROM team_values;")
+        cur.execute(f"SELECT * FROM {table_name};")
         rows = cur.fetchall()
 
-        print("\n=== team_values table ===")
+        print(f"\n=== {table_name} table ===")
         print(f"{'Team':<30} {'Value':<15}")
         print("-" * 45)
         for row in rows:
-            print(f"{row[0]:<30} {row[1]:<15}")
+            if table_name == 'team_values':
+                print(f"{row[0]:<30} {row[1]:<15}")
+            elif table_name == 'net_trades':
+                print(f"{row[0]:<30} {row[1]:<15} ${round(row[2]/100,2):<15} {row[3]:<15}")
+            else:
+                print('Only compatible for viewing tables for team_values or net_trades...')
 
         cur.close()
         conn.close()
@@ -83,5 +88,5 @@ def view_table():
         print(f"An error occurred while viewing table: {e}")
 
 if __name__ == "__main__":
-    initialize_database()
-    view_table()
+    # initialize_database()
+    view_table('net_trades')

@@ -311,7 +311,10 @@ if __name__ == "__main__":
     net_session_team_purchases = trader.get_net_trade_table_as_json()
     if net_session_team_purchases == None:
         net_session_team_purchases = {t: (0, 0) for t in TEAM_LIST}
-    while (count < amount_max) and (net_session_purchases < TOTAL_NET_PURCHASE_MAX):
+    while count < amount_max:
+        if net_session_purchases >= TOTAL_NET_PURCHASE_MAX:
+            print(f'Reached max session purchases of {TOTAL_NET_PURCHASE_MAX}', flush=True)
+            break
 
         for team in TEAM_LIST:
 
@@ -406,9 +409,6 @@ if __name__ == "__main__":
         trader.write_to_net_trade_table(net_session_team_purchases)
         time.sleep(20)
         count += 1
-
-
-
 
 
     sys.exit()
