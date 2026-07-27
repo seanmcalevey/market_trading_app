@@ -147,9 +147,11 @@ class KalshiMarketTrading:
         if MOMENTUM:
             quantity = self.calculate_momentum_quantity(quantity, price_limit, team=team, buy_order=True)
 
+        buy_amount = price_limit * quantity
+
         # Convert price from cents to dollars
         price_dollars = price_limit / 100
-        return self._make_authenticated_request("POST", "/portfolio/events/orders", {
+        buy_result = self._make_authenticated_request("POST", "/portfolio/events/orders", {
             "ticker": ticker,
             "side": "bid",
             "count": str(int(quantity)),
@@ -162,6 +164,9 @@ class KalshiMarketTrading:
             "subaccount": 0,
             "exchange_index": 0
         })
+
+        return buy_amount, quantity
+    
     
     def sell_shares(self, ticker, team, quantity, price_limit):
 
@@ -169,9 +174,11 @@ class KalshiMarketTrading:
         if MOMENTUM:
             quantity = self.calculate_momentum_quantity(quantity, price_limit, team=team, buy_order=False)
 
+        sell_amount = price_limit * quantity
+
         # Convert price from cents to dollars
         price_dollars = price_limit / 100
-        return self._make_authenticated_request("POST", "/portfolio/events/orders", {
+        sell_result = self._make_authenticated_request("POST", "/portfolio/events/orders", {
             "ticker": ticker,
             "side": "ask",
             "count": str(int(quantity)),
@@ -184,6 +191,8 @@ class KalshiMarketTrading:
             "subaccount": 0,
             "exchange_index": 0
         })
+
+        return sell_amount, quantity
     
     def get_portfolio(self):
         return self._make_authenticated_request("GET", "/portfolio/balance")
@@ -391,20 +400,19 @@ if __name__ == "__main__":
             # BUY SIDE
             if ask_price < buy_target:
                 try:
-                    buy_result = trader.buy_shares(kalshi_ticker, team, quantity=UNIT_SIZE, price_limit=ask_price)
-                    total_purchase = UNIT_SIZE * ask_price
+                    buy_amount, buy_quantity = trader.buy_shares(kalshi_ticker, team, quantity=UNIT_SIZE, price_limit=ask_price)
                     all_time_team_net_purchase, all_time_net_shares_purchase = net_session_team_purchases[team]
-                    all_time_team_net_purchase += total_purchase
-                    all_time_net_shares_purchase += UNIT_SIZE
+                    all_time_team_net_purchase += buy_amount
+                    all_time_net_shares_purchase += buy_quantity
                     net_session_team_purchases[team] = (all_time_team_net_purchase, all_time_net_shares_purchase)
-                    all_time_purchase = round((buy_count + total_purchase) / 100, 2)
+                    all_time_purchase = round((buy_count + buy_amount) / 100, 2)
                     net_session_purchases += all_time_purchase
                     # print(f"Buy order: {buy_result}")
-                    print(f'\n!!! Bought {UNIT_SIZE} shares for {team} at {ask_price} cents', flush=True)
+                    print(f'\n!!! Bought {buy_quantity} shares for {team} at {ask_price} cents', flush=True)
                     print(f'!!! {team} session buy amount: ${all_time_purchase}!!!...\n', flush=True)
                             
                     # print(f"Ask price {ask_price} cents is below buy target {buy_target} cents")
-                    buy_count += total_purchase
+                    buy_count += buy_amount
                     trader.update_buy_sell_count(team, buy_count=buy_count)
                     
                 except Exception as e:
@@ -422,21 +430,19 @@ if __name__ == "__main__":
                 # Ensures we don't sell more than we buy
                 if buy_count > sell_count:
                     try:
-                        sell_result = trader.sell_shares(kalshi_ticker, team, quantity=UNIT_SIZE, price_limit=bid_price)
+                        sell_amount, sell_quantity = trader.sell_shares(kalshi_ticker, team, quantity=UNIT_SIZE, price_limit=bid_price)
                         # print(f"Sell order: {sell_result}")
-                        total_sell = UNIT_SIZE * bid_price
                         all_time_team_net_purchase, all_time_net_shares_purchase = net_session_team_purchases[team]
-                        all_time_team_net_purchase -= total_sell
-                        all_time_net_shares_purchase -= UNIT_SIZE
+                        all_time_team_net_purchase -= sell_amount
+                        all_time_net_shares_purchase -= sell_quantity
                         net_session_team_purchases[team] = (all_time_team_net_purchase, all_time_net_shares_purchase)
-                        all_time_sell = round((sell_count + total_sell) / 100, 2)
+                        all_time_sell = round((sell_count + sell_amount) / 100, 2)
                         net_session_purchases -= all_time_sell
-                        print(f'\n...!!! Sold {UNIT_SIZE} shares for {team} at {bid_price} cents', flush=True)
+                        print(f'\n...!!! Sold {sell_quantity} shares for {team} at {bid_price} cents', flush=True)
                         print(f'!!! {team} session sell amount: ${all_time_sell}!!!...\n', flush=True)
                         # print(f"Bid price {bid_price} cents is above sell target {sell_target} cents")
                         
-                        total_purchase = UNIT_SIZE * bid_price
-                        sell_count += total_purchase
+                        sell_count += sell_amount
                         trader.update_buy_sell_count(team, sell_count=sell_count)
                         
                             
