@@ -209,8 +209,8 @@ class KalshiMarketTrading:
             for row in rows:
                 # Columns: team, date, net_amount, net_shares, updated_at
                 team = row[0]
-                net_amount = row[2] if len(row) > 2 else 0
-                net_shares = row[3] if len(row) > 3 else 0
+                net_amount = float(row[2]) if len(row) > 2 else 0
+                net_shares = int(row[3]) if len(row) > 3 else 0
                 net_table_dict[team] = (net_amount, net_shares)
 
             cur.close()
