@@ -167,6 +167,8 @@ class KalshiMarketTrading:
             "exchange_index": 0
         })
 
+        print(f'Buy result return data: {buy_result}')
+
         return buy_amount, quantity
     
     
@@ -329,6 +331,25 @@ class KalshiMarketTrading:
             if 'cur' in locals(): cur.close()
             if 'conn' in locals(): conn.close()
 
+    @staticmethod
+    def calculateMargin(tgt_price, current_price, unit_size, buy=True):
+        margin = (tgt_price - current_price) / current_price if current_price != 0 else 0
+        if buy:
+            if margin < 0.2:
+                adj_unit_size = UNIT_SIZE * 3
+            elif margin < 0.1:
+                adj_unit_size = UNIT_SIZE * 2
+            else:
+                adj_unit_size = UNIT_SIZE
+        else:
+            if margin < -0.2:
+                adj_unit_size = UNIT_SIZE * 3
+            elif margin < -0.1:
+                adj_unit_size = UNIT_SIZE * 2
+            else:
+                adj_unit_size = UNIT_SIZE
+
+        return adj_unit_size
 
 
 if __name__ == "__main__":
@@ -373,6 +394,10 @@ if __name__ == "__main__":
             expected_cents_value = trader.get_current_team_value(team)
             expected_cents = float(expected_cents_value) if expected_cents_value else 0
 
+            # TESTING ONLY
+            trader.buy_shares(kalshi_ticker, team, quantity=5, price_limit=0.1)
+            sys.exit()
+
             # Expected range
             sell_target = expected_cents * (1 + SELL_BUFFER)
             buy_target = expected_cents * (1 - BUY_BUFFER)
@@ -399,10 +424,15 @@ if __name__ == "__main__":
             # print(f'{team} sell count: {sell_count}', flush=True)
             
             
-            # BUY SIDE
-            if ask_price < buy_target:
+            # BUY SIDE:
+
+            if buy_target > ask_price:
+
+                # TAKER:
+
+                adj_unit_size = trader.calculateMargin(tgt_price=buy_target, current_price=ask_price, unit_size=UNIT_SIZE, buy=True)
                 try:
-                    buy_amount, buy_quantity = trader.buy_shares(kalshi_ticker, team, quantity=UNIT_SIZE, price_limit=ask_price)
+                    buy_amount, buy_quantity = trader.buy_shares(kalshi_ticker, team, quantity=adj_unit_size, price_limit=ask_price)
                     all_time_team_net_purchase, all_time_net_shares_purchase = net_session_team_purchases[team]
                     all_time_team_net_purchase += buy_amount
                     all_time_net_shares_purchase += buy_quantity
@@ -423,16 +453,21 @@ if __name__ == "__main__":
                     if unsuccessful_attempts > max_unsuccessful:
                         sys.exit()
 
+            else:
+
+                # MAKER
+                buy_amount, buy_quantity = trader.buy_shares(kalshi_ticker, team, quantity=UNIT_SIZE, price_limit=buy_target)
 
             
 
             # SELL SIDE
             if bid_price > sell_target:
+                adj_unit_size = trader.calculateMargin(tgt_price=buy_target, current_price=ask_price, unit_size=UNIT_SIZE, buy=False)
 
                 # Ensures we don't sell more than we buy
                 if buy_count > sell_count:
                     try:
-                        sell_amount, sell_quantity = trader.sell_shares(kalshi_ticker, team, quantity=UNIT_SIZE, price_limit=bid_price)
+                        sell_amount, sell_quantity = trader.sell_shares(kalshi_ticker, team, quantity=adj_unit_size, price_limit=bid_price)
                         # print(f"Sell order: {sell_result}")
                         all_time_team_net_purchase, all_time_net_shares_purchase = net_session_team_purchases[team]
                         all_time_team_net_purchase -= sell_amount

@@ -92,4 +92,5 @@ def view_table(table_name):
 
 if __name__ == "__main__":
     initialize_database()
-    view_table('team_values') # 'team_values' or 'net_trades'
+    view_table('team_values')
+    # view_table('net_trades') # 'team_values' or 'net_trades'
