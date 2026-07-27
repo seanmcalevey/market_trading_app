@@ -178,11 +178,13 @@ class KalshiMarketTrading:
         else:
             buy_count = 0
             sell_count = 0
+            self.team_buy_sell_count[team] = {'buy': 0, 'sell': 0}
 
         return (buy_count, sell_count)
 
     def update_buy_sell_count(self, team, buy_count=None, sell_count=None):
-        if buy_count:
+        if self.team_buy_sell_count.get(team):
+            if buy_count:
             self.team_buy_sell_count[team]['buy'] = buy_count
 
         if sell_count:
