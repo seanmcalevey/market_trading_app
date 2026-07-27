@@ -35,6 +35,7 @@ class KalshiMarketTrading:
         self.kalshi_api_url = kalshi_api_url
         self.private_key = self._load_private_key()
         self.team_buy_sell_count = dict()
+        self.first_write = True
         
     def _load_private_key(self):
         """Load RSA private key from file"""
@@ -193,8 +194,77 @@ class KalshiMarketTrading:
             buy_count = buy_count if buy_count else 0
             sell_count = sell_count if sell_count else 0
             self.team_buy_sell_count[team] = {'buy': buy_count, 'sell': sell_count}
-            
 
+
+    def get_net_trade_table_as_json(self):
+        net_table_dict = {}
+        try:
+            print("\nConnecting to the database to get net trade table data...")
+            conn = psycopg2.connect(DB_URL)
+            cur = conn.cursor()
+            # Select all rows from team_values
+            cur.execute("SELECT * FROM net_trades;")
+            rows = cur.fetchall()
+            for row in rows:
+                team, net_amount, net_shares = row[0], row[1], row[2]
+                net_table_dict[team] = (net_amount, net_shares)
+
+            cur.close()
+            conn.close()
+            print('Fetched net trade data from net trade table')
+
+        except Exception as e:
+            print(f"An error occurred while viewing table: {e}")
+
+    
+    def write_to_net_trade_table(self, net_session_team_purchases: dict):
+        """
+        Creates the table if missing, and safely inserts or updates 
+        a Python dictionary using PostgreSQL JSONB format.
+        """
+        try:
+            # Connect to your Render Postgres Database
+            conn = psycopg2.connect(DB_URL)
+            cur = conn.cursor()
+
+            # Create table on first write
+            if self.first_write:
+                cur.execute("""
+                    CREATE TABLE IF NOT EXISTS net_trades (
+                        team VARCHAR(100) PRIMARY KEY,
+                        date VARCHAR(25),
+                        net_amount DECIMAL(10, 3) NOT NULL,
+                        net_shares INTEGER NOT NULL,
+                        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    );
+                """)
+
+                self.first_write = False
+
+            today_date_str = datetime.date.today().strftime("%m/%d")
+            for team in TEAM_LIST:
+                values = net_session_team_purchases.get(team)
+                net_amount, net_shares = values[0], values[1]
+                cur.execute("""
+                    INSERT INTO net_trades (team, date, net_amount, net_shares)
+                    VALUES (%s, %s, %s, %s)
+                    ON CONFLICT (team) DO UPDATE 
+                    SET net_amount = EXCLUDED.net_amount, net_shares = EXCLUDED.net_shares;
+                """.format(team, today_date_str, net_amount, net_shares))
+
+            # Commit changes to make them permanent
+            conn.commit()
+            cur.close()
+            conn.close()
+            print(f"Successfully saved net trade data", flush=True)
+
+        except Exception as e:
+            print(f"Database operation failed: {e}", flush=True)
+            
+        finally:
+            # Always close connections to avoid leaking resources
+            if 'cur' in locals(): cur.close()
+            if 'conn' in locals(): conn.close()
 
 
 
@@ -233,6 +303,7 @@ if __name__ == "__main__":
     count = 0
     amount_max = 10000
     net_session_purchases = 0
+    net_session_team_purchases = trader.get_net_trade_table_as_json()
     while (count < amount_max) and (net_session_purchases < TOTAL_NET_PURCHASE_MAX):
 
         for team in TEAM_LIST:
@@ -272,6 +343,7 @@ if __name__ == "__main__":
                 try:
                     buy_result = trader.buy_shares(kalshi_ticker, quantity=UNIT_SIZE, price_limit=ask_price)
                     total_purchase = UNIT_SIZE * ask_price
+                    net_session_team_purchases[team] += total_purchase
                     all_time_purchase = round((buy_count + total_purchase) / 100, 2)
                     net_session_purchases += all_time_purchase
                     # print(f"Buy order: {buy_result}")
@@ -301,6 +373,7 @@ if __name__ == "__main__":
                         sell_result = trader.sell_shares(kalshi_ticker, quantity=UNIT_SIZE, price_limit=bid_price)
                         # print(f"Sell order: {sell_result}")
                         total_sell = UNIT_SIZE * bid_price
+                        net_session_team_purchases[team] -= total_sell
                         all_time_sell = round((sell_count + total_sell) / 100, 2)
                         net_session_purchases -= all_time_sell
                         print(f'\n...!!! Sold {UNIT_SIZE} shares for {team} at {bid_price} cents', flush=True)
@@ -317,9 +390,14 @@ if __name__ == "__main__":
                         unsuccessful_attempts += 1
                         if unsuccessful_attempts > max_unsuccessful:
                             sys.exit()
-                        
+
+        trader.write_to_net_trade_table(net_session_team_purchases)
         time.sleep(20)
         count += 1
+
+
+
+
 
     sys.exit()
     
