@@ -612,6 +612,7 @@ if __name__ == "__main__":
                     print(f'Open order does not exist for {team}... Creating now...', flush=True)
                     time.sleep(5)
                     buy_amount, buy_quantity, shares_still_avail, order_id = trader.buy_shares(kalshi_ticker, team, quantity=MAKER_UNIT_SIZE, price_limit=buy_target, maker=True)
+                    open_orders_dict[team] = (order_id, open_sell_order_id)
 
             
 
@@ -677,6 +678,7 @@ if __name__ == "__main__":
                     print(f'Open order does not exist for {team}... Creating now...', flush=True)
                     time.sleep(5)
                     sell_amount, sell_quantity, shares_still_avail, order_id = trader.sell_shares(kalshi_ticker, team, quantity=MAKER_UNIT_SIZE, price_limit=sell_target, maker=True)
+                    open_orders_dict[team] = (open_buy_order_id, order_id)
 
 
         # UPDATE DB TABLES
