@@ -270,8 +270,10 @@ if __name__ == "__main__":
             if ask_price < buy_target:
                 try:
                     buy_result = trader.buy_shares(kalshi_ticker, quantity=UNIT_SIZE, price_limit=ask_price)
+                    total_purchase = UNIT_SIZE * ask_price
+                    all_time_purchase = round((buy_count + total_purchase) / 100, 2)
                     # print(f"Buy order: {buy_result}")
-                    print(f'\n...!!! Bought {UNIT_SIZE} shares for {team} at {ask_price} cents !!!...\n', flush=True)
+                    print(f'\n!!! Bought {UNIT_SIZE} shares for {team} at {ask_price} cents.\n!!! Session buy amount: ${all_time_purchase}!!!...\n', flush=True)
                             
                     # print(f"Ask price {ask_price} cents is below buy target {buy_target} cents")
                     total_purchase = UNIT_SIZE * ask_price
@@ -295,7 +297,9 @@ if __name__ == "__main__":
                     try:
                         sell_result = trader.sell_shares(kalshi_ticker, quantity=UNIT_SIZE, price_limit=bid_price)
                         # print(f"Sell order: {sell_result}")
-                        print(f'\n...!!! Sold {UNIT_SIZE} shares for {team} at {bid_price} cents!!!...\n')
+                        total_sell = UNIT_SIZE * bid_price
+                        all_time_sell = round((sell_count + total_sell) / 100, 2)
+                        print(f'\n...!!! Sold {UNIT_SIZE} shares for {team} at {bid_price} cents.\n!!! Session sell amount: ${all_time_sell}!!!...\n')
                         # print(f"Bid price {bid_price} cents is above sell target {sell_target} cents")
                         
                         total_purchase = UNIT_SIZE * bid_price
@@ -309,7 +313,7 @@ if __name__ == "__main__":
                         if unsuccessful_attempts > max_unsuccessful:
                             sys.exit()
                         
-        time.sleep(15)
+        time.sleep(20)
         count += 1
 
     sys.exit()
