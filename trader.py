@@ -590,7 +590,7 @@ if __name__ == "__main__":
                 time.sleep(5)
 
                 # MAKER
-                open_order_ids = open_orders_dict.get(team)
+                open_order_ids = open_orders_dict.get(team, (None, None))
                 open_buy_order_id, open_sell_order_id = open_order_ids
                 if open_buy_order_id:
 
@@ -656,7 +656,7 @@ if __name__ == "__main__":
                 time.sleep(5)
 
                 # MAKER
-                open_order_ids = open_orders_dict.get(team)
+                open_order_ids = open_orders_dict.get(team, (None, None))
                 open_buy_order_id, open_sell_order_id = open_order_ids
                 if open_sell_order_id:
 
