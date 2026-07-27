@@ -115,11 +115,15 @@ class KalshiMarketTrading:
                 response = self.session.post(url, headers=headers, json=json_data, timeout=10)
             else:
                 raise ValueError(f"Unsupported HTTP method: {method}")
-            
-            response.raise_for_status()
+
+            if not response.ok:
+                print(f"Request failed: {response.status_code} {response.reason} for {method} {url}", flush=True)
+                print(f"Response body: {response.text}", flush=True)
+                return None
+
             return response.json()
         except Exception as e:
-            print(f"Request failed: {e}")
+            print(f"Request failed: {e}", flush=True)
             return None
     
     def get_market(self, ticker=None):
@@ -175,6 +179,10 @@ class KalshiMarketTrading:
             "exchange_index": 0
         })
 
+        if not buy_result:
+            print(f"Buy request failed or returned empty response for {team} ({ticker})", flush=True)
+            return 0, 0, 0, None
+
         order_id = buy_result.get('order_id')
         shares_bought = buy_result.get('fill_count')
         shares_still_avail = buy_result.get('remaining_count')
@@ -211,6 +219,10 @@ class KalshiMarketTrading:
             "subaccount": 0,
             "exchange_index": 0
         })
+
+        if not sell_result:
+            print(f"Sell request failed or returned empty response for {team} ({ticker})", flush=True)
+            return 0, 0, 0, None
 
         order_id = sell_result.get('order_id')
         shares_sold = sell_result.get('fill_count')
@@ -368,8 +380,7 @@ class KalshiMarketTrading:
                     """,
                     (team, today_date_str, net_amount, net_shares)
                 )
-
-            # Commit changes to make them permanent
+                
             conn.commit()
             cur.close()
             conn.close()
