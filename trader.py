@@ -124,21 +124,22 @@ class KalshiMarketTrading:
 
     def calculate_momentum_quantity(self, quantity, price_limit, team, buy_order=True):
         if buy_order:
-            price, amount = self.team_last_buy.get(team, (0, 0))
+            price, amount = self.team_last_buy.get(team, (None, 0))
         else:
-            price, amount = self.team_last_sell.get(team, (0, 0))
+            price, amount = self.team_last_sell.get(team, (None, 0))
         
-        if price == price_limit:
+        if price and (price == price_limit):
             cap_amount = quantity * MOMENTUM_CAP
             quantity = amount + quantity if amount <= cap_amount else cap_amount
             print(f'Momentum used!!! Momentum purchase for {team}: {quantity} @ {price}', flush=True)
             time.sleep(2)  # Simulate delay
 
+        if buy_order:
+            self.team_last_buy[team] = (price_limit, quantity)
         else:
-            if buy_order:
-                self.team_last_buy[team] = (price_limit, quantity)
-            else:
-                self.team_last_sell[team] = (price_limit, quantity)
+            self.team_last_sell[team] = (price_limit, quantity)
+
+        return quantity
             
     def buy_shares(self, ticker, team, quantity, price_limit):
 
