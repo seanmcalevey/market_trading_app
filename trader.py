@@ -206,12 +206,14 @@ class KalshiMarketTrading:
             cur.execute("SELECT * FROM net_trades;")
             rows = cur.fetchall()
             for row in rows:
-                team, net_amount, net_shares = row[0], row[1], row[2]
+                team, net_amount, net_shares = row[0], row[2], row[3]
                 net_table_dict[team] = (net_amount, net_shares)
 
             cur.close()
             conn.close()
             print('Fetched net trade data from net trade table')
+
+            return net_table_dict
 
         except Exception as e:
             print(f"An error occurred while viewing table: {e}")
@@ -343,7 +345,10 @@ if __name__ == "__main__":
                 try:
                     buy_result = trader.buy_shares(kalshi_ticker, quantity=UNIT_SIZE, price_limit=ask_price)
                     total_purchase = UNIT_SIZE * ask_price
-                    net_session_team_purchases[team] += total_purchase
+                    all_time_team_net_purchase, all_time_net_shares_purchase = net_session_team_purchases[team]
+                    all_time_team_net_purchase += total_purchase
+                    all_time_net_shares_purchase += UNIT_SIZE
+                    net_session_team_purchases[team] = (all_time_team_net_purchase, all_time_net_shares_purchase)
                     all_time_purchase = round((buy_count + total_purchase) / 100, 2)
                     net_session_purchases += all_time_purchase
                     # print(f"Buy order: {buy_result}")
@@ -373,7 +378,10 @@ if __name__ == "__main__":
                         sell_result = trader.sell_shares(kalshi_ticker, quantity=UNIT_SIZE, price_limit=bid_price)
                         # print(f"Sell order: {sell_result}")
                         total_sell = UNIT_SIZE * bid_price
-                        net_session_team_purchases[team] -= total_sell
+                        all_time_team_net_purchase, all_time_net_shares_purchase = net_session_team_purchases[team]
+                        all_time_team_net_purchase -= total_sell
+                        all_time_net_shares_purchase -= UNIT_SIZE
+                        net_session_team_purchases[team] = (all_time_team_net_purchase, all_time_net_shares_purchase)
                         all_time_sell = round((sell_count + total_sell) / 100, 2)
                         net_session_purchases -= all_time_sell
                         print(f'\n...!!! Sold {UNIT_SIZE} shares for {team} at {bid_price} cents', flush=True)
