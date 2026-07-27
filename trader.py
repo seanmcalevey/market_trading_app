@@ -18,9 +18,10 @@ API_KEY_ID = "cc9f7a70-b6f3-482c-b573-8a77a53557eb"
 DB_URL = os.environ.get("DATABASE_URL")
 PRIVATE_KEY_PATH = 'private_key.pem'
 # PRIVATE_KEY_PATH = os.path.expanduser("~/.ssh/id_rsa_kalshi.pub")
-BUY_BUFFER, SELL_BUFFER = .15, .05
+BUY_BUFFER, SELL_BUFFER = .15, .12
 TOTAL_NET_PURCHASE_MAX = 100
 UNIT_SIZE = 1
+MAKER_UNIT_SIZE, MIN_OPEN_ORDERS = 100, 25
 TEAM_LIST = ['Cleveland Guardians', 'Tampa Bay Rays', 'Minnesota Twins',
              'Seattle Mariners', 'Texas Rangers', 'Detroit Tigers', 
             'Chicago Cubs', 'Pittsburgh Pirates', 'Baltimore Orioles',
@@ -42,7 +43,9 @@ class KalshiMarketTrading:
         self.team_buy_sell_count = dict()
         self.team_last_buy = dict()
         self.team_last_sell = dict()
+        self.open_orders_by_team = {t: None for t in TEAM_LIST}
         self.first_write = True
+        self.first_write_orders = True
         
         
     def _load_private_key(self):
@@ -143,13 +146,17 @@ class KalshiMarketTrading:
 
         return quantity
             
-    def buy_shares(self, ticker, team, quantity, price_limit):
+    def buy_shares(self, ticker, team, quantity, price_limit, maker=False):
 
-        # Adds previous buy amounts to the current purchase
-        if MOMENTUM:
-            quantity = self.calculate_momentum_quantity(quantity, price_limit, team=team, buy_order=True)
+        # Adds previous buy amounts to the current purchase (taker orders ONLY)
+        if maker == False:
+            if MOMENTUM:
+                quantity = self.calculate_momentum_quantity(quantity, price_limit, team=team, buy_order=True)
 
         buy_amount = price_limit * quantity
+
+        type_of_order = 'maker' if maker else 'taker'
+        print(f'Creating {type_of_order} sell order...', flush=True)
 
         # Convert price from cents to dollars
         price_dollars = price_limit / 100
@@ -167,18 +174,26 @@ class KalshiMarketTrading:
             "exchange_index": 0
         })
 
-        print(f'Buy result return data: {buy_result}')
+        order_id = buy_result.get('order_id')
+        shares_bought = buy_result.get('fill_count')
+        shares_still_avail = buy_result.get('remaining_count')
 
-        return buy_amount, quantity
+        # print(f'Buy result return data: {buy_result}')
+
+        return buy_amount, shares_bought, shares_still_avail, order_id
     
     
-    def sell_shares(self, ticker, team, quantity, price_limit):
+    def sell_shares(self, ticker, team, quantity, price_limit, maker=False):
 
         # Adds previous sell amounts to the current sell order
-        if MOMENTUM:
-            quantity = self.calculate_momentum_quantity(quantity, price_limit, team=team, buy_order=False)
+        if maker == False:
+            if MOMENTUM:
+                quantity = self.calculate_momentum_quantity(quantity, price_limit, team=team, buy_order=False)
 
         sell_amount = price_limit * quantity
+
+        type_of_order = 'maker' if maker else 'taker'
+        print(f'Creating {type_of_order} sell order...', flush=True)
 
         # Convert price from cents to dollars
         price_dollars = price_limit / 100
@@ -196,7 +211,15 @@ class KalshiMarketTrading:
             "exchange_index": 0
         })
 
-        return sell_amount, quantity
+        order_id = sell_result.get('order_id')
+        shares_sold = sell_result.get('fill_count')
+        shares_still_avail = sell_result.get('remaining_count')
+
+        # print(f'Sell result return data: {sell_result}')
+
+        return sell_amount, shares_sold, shares_still_avail, order_id
+
+    
     
     def get_portfolio(self):
         return self._make_authenticated_request("GET", "/portfolio/balance")
@@ -243,6 +266,32 @@ class KalshiMarketTrading:
             buy_count = buy_count if buy_count else 0
             sell_count = sell_count if sell_count else 0
             self.team_buy_sell_count[team] = {'buy': buy_count, 'sell': sell_count}
+
+    def get_and_update_order_status(self, order_id):
+        order_return_status = self._make_authenticated_request("GET", f"/portfolio/orders/{order_id}")
+        order_data = order_return_status.get('order')
+        if order_data:
+            filled_orders = order_data.get('fill_count_fp')
+            open_orders = order_data.get('remaining_count_fp')
+            if float(open_orders) < MIN_OPEN_ORDERS:
+                net_transaction_amount = order_data.get('maker_fill_cost_dollars')
+                net_fees_amount = order_data.get('maker_fees_dollars')
+
+                # Cancel the open order
+                cancel_request_return = self._make_authenticated_request("DELETE", f"portfolio/events/orders/{order_id}")
+                if cancel_request_return:
+                    reduced_shares = cancel_request_return.get('reduced_by')
+
+                    # Safety check
+                    if open_orders != reduced_shares:
+                        print(f"\n\n !!! ERROR !!! \n\n")
+                        print(f"Error: open_shares ({open_orders}) for {team} does not match total reduced_shares ({reduced_shares}) upon closure of order_id {order_id}", flush=True)
+                        print(f"\n\n !!! ERROR !!! \n\n")
+                    else:
+                        print(f'Successfully cancelled open order {order_id} for team {team}...')
+
+                        return net_transaction_amount, net_fees_amount, filled_orders
+
 
 
     def get_net_trade_table_as_json(self):
@@ -331,6 +380,76 @@ class KalshiMarketTrading:
             if 'cur' in locals(): cur.close()
             if 'conn' in locals(): conn.close()
 
+
+    def get_open_orders_as_json(self):
+        open_orders_dict = {}
+        try:
+            print("\nConnecting to the database to get open orders data...")
+            conn = psycopg2.connect(DB_URL)
+            cur = conn.cursor()
+            # Select all rows from open_orders
+            cur.execute("SELECT * FROM open_orders;")
+            rows = cur.fetchall()
+            for row in rows:
+                # Columns: team, order_id
+                team = row[0]
+                buy_order_id = row[1]
+                sell_order_id = row[2]
+                open_orders_dict[team] = (buy_order_id, sell_order_id)
+
+            cur.close()
+            conn.close()
+            print('Fetched open orders data from open orders table')
+
+            return open_orders_dict
+
+        except Exception as e:
+            print(f"An error occurred while viewing table: {e}")
+
+    def write_to_open_orders_table(self, open_orders_by_team: dict):
+        try:
+            # Connect to your Render Postgres Database
+            conn = psycopg2.connect(DB_URL)
+            cur = conn.cursor()
+
+            # Create table on first write
+            if self.first_write_orders:
+                cur.execute("""
+                    CREATE TABLE IF NOT EXISTS open_orders (
+                        team VARCHAR(100) PRIMARY KEY,
+                        buy_order_id VARCHAR(100),
+                        sell_order_id VARCHAR(100)
+                    );
+                """)
+
+                self.first_write_orders = False
+
+            for team in TEAM_LIST:
+                buy_order_id, sell_order_id = open_orders_by_team.get(team, (None, None))
+                cur.execute(
+                    """
+                    INSERT INTO open_orders (team, buy_order_id, sell_order_id)
+                    VALUES (%s, %s, %s)
+                    ON CONFLICT (team) DO UPDATE 
+                    SET buy_order_id = EXCLUDED.buy_order_id, sell_order_id = EXCLUDED.sell_order_id;
+                    """,
+                    (team, buy_order_id, sell_order_id)
+                )
+
+            # Commit changes to make them permanent
+            conn.commit()
+            cur.close()
+            conn.close()
+            print(f"Successfully saved open_order data table", flush=True)
+
+        except Exception as e:
+            print(f"Database operation failed: {e}", flush=True)
+            
+        finally:
+            # Always close connections to avoid leaking resources
+            if 'cur' in locals(): cur.close()
+            if 'conn' in locals(): conn.close()
+
     @staticmethod
     def calculateMargin(tgt_price, current_price, unit_size, buy=True):
         margin = (tgt_price - current_price) / current_price if current_price != 0 else 0
@@ -378,9 +497,16 @@ if __name__ == "__main__":
     count = 0
     amount_max = 10000
     net_session_purchases = 0
+
+    # Open Orders
+    open_orders_dict = trader.get_open_orders_as_json()
+
+    # Net Session Purchases by Team
     net_session_team_purchases = trader.get_net_trade_table_as_json()
     if net_session_team_purchases == None:
         net_session_team_purchases = {t: (0, 0) for t in TEAM_LIST}
+
+    # Main Loop
     while count < amount_max:
         if net_session_purchases >= TOTAL_NET_PURCHASE_MAX:
             print(f'Reached max session purchases of {TOTAL_NET_PURCHASE_MAX}', flush=True)
@@ -394,9 +520,9 @@ if __name__ == "__main__":
             expected_cents_value = trader.get_current_team_value(team)
             expected_cents = float(expected_cents_value) if expected_cents_value else 0
 
-            # TESTING ONLY
-            trader.buy_shares(kalshi_ticker, team, quantity=5, price_limit=0.1)
-            sys.exit()
+            # # TESTING ONLY
+            # trader.buy_shares(kalshi_ticker, team, quantity=5, price_limit=0.1)
+            # sys.exit()
 
             # Expected range
             sell_target = expected_cents * (1 + SELL_BUFFER)
@@ -432,7 +558,7 @@ if __name__ == "__main__":
 
                 adj_unit_size = trader.calculateMargin(tgt_price=buy_target, current_price=ask_price, unit_size=UNIT_SIZE, buy=True)
                 try:
-                    buy_amount, buy_quantity = trader.buy_shares(kalshi_ticker, team, quantity=adj_unit_size, price_limit=ask_price)
+                    buy_amount, buy_quantity, shares_still_avail, order_id = trader.buy_shares(kalshi_ticker, team, quantity=adj_unit_size, price_limit=ask_price)
                     all_time_team_net_purchase, all_time_net_shares_purchase = net_session_team_purchases[team]
                     all_time_team_net_purchase += buy_amount
                     all_time_net_shares_purchase += buy_quantity
@@ -456,18 +582,38 @@ if __name__ == "__main__":
             else:
 
                 # MAKER
-                buy_amount, buy_quantity = trader.buy_shares(kalshi_ticker, team, quantity=UNIT_SIZE, price_limit=buy_target)
+                open_order_ids = open_orders_dict.get(team)
+                if open_order_ids:
+                    open_buy_order_id, open_sell_order_id = open_order_ids
+                    net_transaction_amount, net_fees_amount, orders_filled = trader.get_and_update_order_status(open_buy_order_id)
+                    if net_transaction_amount is not None:
+                        all_time_team_net_purchase, all_time_net_shares_purchase = net_session_team_purchases[team]
+                        all_time_team_net_purchase += net_transaction_amount
+                        all_time_net_shares_purchase += orders_filled
+                        net_session_team_purchases[team] = (all_time_team_net_purchase, all_time_net_shares_purchase)
+                        open_orders_dict[team] = (None, open_sell_order_id)
+
+                        # Add fee logic here...
+
+
+                else:
+                    buy_amount, buy_quantity, shares_still_avail, order_id = trader.buy_shares(kalshi_ticker, team, quantity=MAKER_UNIT_SIZE, price_limit=buy_target, maker=True)
 
             
 
             # SELL SIDE
-            if bid_price > sell_target:
+
+            if sell_target < bid_price:
+
+
+                # TAKER
+
                 adj_unit_size = trader.calculateMargin(tgt_price=buy_target, current_price=ask_price, unit_size=UNIT_SIZE, buy=False)
 
                 # Ensures we don't sell more than we buy
                 if buy_count > sell_count:
                     try:
-                        sell_amount, sell_quantity = trader.sell_shares(kalshi_ticker, team, quantity=adj_unit_size, price_limit=bid_price)
+                        sell_amount, sell_quantity, shares_still_avail, order_id = trader.sell_shares(kalshi_ticker, team, quantity=adj_unit_size, price_limit=bid_price, maker=False)
                         # print(f"Sell order: {sell_result}")
                         all_time_team_net_purchase, all_time_net_shares_purchase = net_session_team_purchases[team]
                         all_time_team_net_purchase -= sell_amount
@@ -489,8 +635,33 @@ if __name__ == "__main__":
                         if unsuccessful_attempts > max_unsuccessful:
                             sys.exit()
 
+            else:
+
+                # MAKER
+                open_order_ids = open_orders_dict.get(team)
+                if open_order_ids:
+                    open_buy_order_id, open_sell_order_id = open_order_ids
+                    net_transaction_amount, net_fees_amount, orders_filled = trader.get_and_update_order_status(open_sell_order_id)
+                    if net_transaction_amount is not None:
+                        all_time_team_net_purchase, all_time_net_shares_purchase = net_session_team_purchases[team]
+                        all_time_team_net_purchase -= net_transaction_amount
+                        all_time_net_shares_purchase -= orders_filled
+                        net_session_team_purchases[team] = (all_time_team_net_purchase, all_time_net_shares_purchase)
+                        open_orders_dict[team] = (open_buy_order_id, None)
+
+                        # Add fee logic here...
+                
+
+                else:
+                    sell_amount, sell_quantity, shares_still_avail, order_id = trader.sell_shares(kalshi_ticker, team, quantity=MAKER_UNIT_SIZE, price_limit=sell_target, maker=True)
+
+
+        # UPDATE DB TABLES
+        trader.write_to_open_orders_table(open_orders_dict)
         trader.write_to_net_trade_table(net_session_team_purchases)
-        time.sleep(20)
+
+        # SLEEP & LOOP
+        time.sleep(30)
         count += 1
 
 
