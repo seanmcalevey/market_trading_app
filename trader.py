@@ -18,10 +18,11 @@ API_KEY_ID = "cc9f7a70-b6f3-482c-b573-8a77a53557eb"
 DB_URL = os.environ.get("DATABASE_URL")
 PRIVATE_KEY_PATH = 'private_key.pem'
 # PRIVATE_KEY_PATH = os.path.expanduser("~/.ssh/id_rsa_kalshi.pub")
-BUFFER = .1
+BUFFER = .2
 TOTAL_MAX = 100
 UNIT_SIZE = 1
-TEAM_LIST = ['Cleveland Guardians', 'Tampa Bay Rays']
+TEAM_LIST = ['Cleveland Guardians', 'Tampa Bay Rays', 'Minnesota Twins', 'Seattle Mariners', 'Texas Rangers', 'Detroit Tigers', 
+            'Chicago Cubs', 'Pittsburgh Pirates']
 
 class KalshiMarketTrading:
 
@@ -33,6 +34,7 @@ class KalshiMarketTrading:
         self.session = requests.Session()
         self.kalshi_api_url = kalshi_api_url
         self.private_key = self._load_private_key()
+        self.team_buy_sell_count = dict()
         
     def _load_private_key(self):
         """Load RSA private key from file"""
@@ -168,7 +170,24 @@ class KalshiMarketTrading:
             print(f"Database read error: {e}")
             return None
 
+    def get_buy_sell_count(self, team):
+        buy_sell_counts = self.team_buy_sell_count.get(team)
+        if buy_sell_counts:
+            buy_count = buy_sell_counts.get('buy', 0)
+            sell_count = buy_sell_counts.get('sell', 0)
+        else:
+            buy_count = 0
+            sell_count = 0
 
+        return (buy_count, sell_count)
+
+    def update_buy_sell_count(self, team, buy_count=None, sell_count=None):
+        if buy_count:
+            self.team_buy_sell_count[team]['buy'] = buy_count
+
+        if sell_count:
+            self.team_buy_sell_count[team]['sell'] = sell_count
+            
 
 
 
@@ -198,8 +217,13 @@ if __name__ == "__main__":
     portfolio = trader.get_portfolio()
     print("Portfolio: ")
     print(portfolio)
+
+    # Buy/sell counts
+    team_buy_sell_count = {}
     
     # Get market info
+    unsuccessful_attempts = 0
+    max_unsuccessful = 15
     count = 0
     amount_max = 10000
     while count < amount_max:
@@ -229,25 +253,52 @@ if __name__ == "__main__":
     
             print(f"Market ask (price, amount): {round(ask_price, 2)} cents, {ask_amount} shares", flush=True)
             print(f"Market bid (price, amount): {round(bid_price, 2)} cents, {bid_amount} shares", flush=True)
-    
+
+            # Get buy-sell counts
+            buy_count, sell_count = trader.get_buy_sell_count(team)
+            
+            
+            # BUY SIDE
             if ask_price < buy_target:
                 try:
                     buy_result = trader.buy_shares(kalshi_ticker, quantity=UNIT_SIZE, price_limit=ask_price)
                     # print(f"Buy order: {buy_result}")
                     print(f'Bought {UNIT_SIZE} shares for {team} at {ask_price} cents.', flush=True)
                     # print(f"Ask price {ask_price} cents is below buy target {buy_target} cents")
+                    buy_count += UNIT_SIZE
+                    self.update_buy_sell_count(team, buy_count=buy_count)
+                    
                 except Exception as e:
-                    print(f'Unsuccessful buy attempt: {e}')
-                    sys.exit()
-    
-            # if bid_price > sell_target:
-            #     try:
-            #         sell_result = trader.sell_shares(kalshi_ticker, quantity=UNIT_SIZE, price_limit=bid_price)
-            #         # print(f"Sell order: {sell_result}")
-            #         print(f'Sold {UNIT_SIZE} shares for {team} at {bid_price} cents.')
-            #         # print(f"Bid price {bid_price} cents is above sell target {sell_target} cents")
-                
-        time.sleep(5)
+                    print(f'Unsuccessful buy attempt: {e}', flush=True)
+                    unsuccessful_attempts += 1
+                    if unsuccessful_attempts > max_unsuccessful:
+                        sys.exit()
+
+
+            
+
+            # SELL SIDE
+            if bid_price > sell_target:
+
+                # Ensures we don't sell more than we buy
+                if buy_count > sell_count:
+                    try:
+                        sell_result = trader.sell_shares(kalshi_ticker, quantity=UNIT_SIZE, price_limit=bid_price)
+                        # print(f"Sell order: {sell_result}")
+                        print(f'Sold {UNIT_SIZE} shares for {team} at {bid_price} cents.')
+                        # print(f"Bid price {bid_price} cents is above sell target {sell_target} cents")
+                        
+                        sell_count += UNIT_SIZE
+                        self.update_buy_sell_count(team, sell_count=sell_count)
+                        
+                            
+                    except Exception as e:
+                        print(f'Unsuccessful buy attempt: {e}')
+                        unsuccessful_attempts += 1
+                        if unsuccessful_attempts > max_unsuccessful:
+                            sys.exit()
+                        
+        time.sleep(15)
         count += 1
 
     sys.exit()
