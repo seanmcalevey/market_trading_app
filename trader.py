@@ -161,8 +161,9 @@ class KalshiMarketTrading:
             conn = psycopg2.connect(DB_URL)
             cur = conn.cursor()
             # Example query: get a threshold or setting from a configuration table
-            cur.execute(f"SELECT value FROM team_values WHERE team = '{team}';")
-            value = cur.fetchone()[0]
+            cur.execute("SELECT value FROM team_values WHERE team = %s;", (team,))
+            row = cur.fetchone()
+            value = row[0] if row and len(row) > 0 else None
             cur.close()
             conn.close()
             return value
@@ -206,7 +207,10 @@ class KalshiMarketTrading:
             cur.execute("SELECT * FROM net_trades;")
             rows = cur.fetchall()
             for row in rows:
-                team, net_amount, net_shares = row[0], row[2], row[3]
+                # Columns: team, date, net_amount, net_shares, updated_at
+                team = row[0]
+                net_amount = row[2] if len(row) > 2 else 0
+                net_shares = row[3] if len(row) > 3 else 0
                 net_table_dict[team] = (net_amount, net_shares)
 
             cur.close()
@@ -245,14 +249,22 @@ class KalshiMarketTrading:
 
             today_date_str = datetime.date.today().strftime("%m/%d")
             for team in TEAM_LIST:
-                values = net_session_team_purchases.get(team)
-                net_amount, net_shares = values[0], values[1]
-                cur.execute("""
+                values = net_session_team_purchases.get(team, (0, 0))
+                try:
+                    net_amount = values[0]
+                    net_shares = values[1]
+                except Exception:
+                    net_amount, net_shares = 0, 0
+
+                cur.execute(
+                    """
                     INSERT INTO net_trades (team, date, net_amount, net_shares)
                     VALUES (%s, %s, %s, %s)
                     ON CONFLICT (team) DO UPDATE 
                     SET net_amount = EXCLUDED.net_amount, net_shares = EXCLUDED.net_shares;
-                """.format(team, today_date_str, net_amount, net_shares))
+                    """,
+                    (team, today_date_str, net_amount, net_shares)
+                )
 
             # Commit changes to make them permanent
             conn.commit()
