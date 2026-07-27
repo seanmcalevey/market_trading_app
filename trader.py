@@ -593,7 +593,7 @@ if __name__ == "__main__":
                 open_order_ids = open_orders_dict.get(team)
                 if open_order_ids:
 
-                    print(f'Open order {order_id} exists for {team}...', flush=True)
+                    print(f'Open order(s) {open_order_ids} exist for {team}...', flush=True)
                     time.sleep(5)
 
                     open_buy_order_id, open_sell_order_id = open_order_ids
@@ -658,7 +658,7 @@ if __name__ == "__main__":
                 open_order_ids = open_orders_dict.get(team)
                 if open_order_ids:
                     
-                    print(f'Open order {order_id} exists for {team}...', flush=True)
+                    print(f'Open order(s) {open_order_ids} exist for {team}...', flush=True)
                     time.sleep(5)
 
                     open_buy_order_id, open_sell_order_id = open_order_ids
