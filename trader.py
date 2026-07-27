@@ -591,12 +591,12 @@ if __name__ == "__main__":
 
                 # MAKER
                 open_order_ids = open_orders_dict.get(team)
-                if open_order_ids:
+                open_buy_order_id, open_sell_order_id = open_order_ids
+                if open_buy_order_id:
 
-                    print(f'Open order(s) {open_order_ids} exist for {team}...', flush=True)
+                    print(f'Open buy order {open_buy_order_id} exists for {team}...', flush=True)
                     time.sleep(5)
-
-                    open_buy_order_id, open_sell_order_id = open_order_ids
+                    
                     net_transaction_amount, net_fees_amount, orders_filled = trader.get_and_update_order_status(open_buy_order_id)
                     if net_transaction_amount is not None:
                         all_time_team_net_purchase, all_time_net_shares_purchase = net_session_team_purchases[team]
@@ -656,12 +656,12 @@ if __name__ == "__main__":
 
                 # MAKER
                 open_order_ids = open_orders_dict.get(team)
-                if open_order_ids:
-                    
-                    print(f'Open order(s) {open_order_ids} exist for {team}...', flush=True)
+                open_buy_order_id, open_sell_order_id = open_order_ids
+                if open_sell_order_id:
+
+                    print(f'Open sell order {open_sell_order_id} exists for {team}...', flush=True)
                     time.sleep(5)
 
-                    open_buy_order_id, open_sell_order_id = open_order_ids
                     net_transaction_amount, net_fees_amount, orders_filled = trader.get_and_update_order_status(open_sell_order_id)
                     if net_transaction_amount is not None:
                         all_time_team_net_purchase, all_time_net_shares_purchase = net_session_team_purchases[team]
