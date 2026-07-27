@@ -586,6 +586,9 @@ if __name__ == "__main__":
 
             else:
 
+                print('Hit buy else block...', flush=True)
+                time.sleep(5)
+
                 # MAKER
                 open_order_ids = open_orders_dict.get(team)
                 if open_order_ids:
@@ -641,6 +644,9 @@ if __name__ == "__main__":
                             sys.exit()
 
             else:
+
+                print('Hit sell else block...', flush=True)
+                time.sleep(5)
 
                 # MAKER
                 open_order_ids = open_orders_dict.get(team)
