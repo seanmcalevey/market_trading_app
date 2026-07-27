@@ -23,6 +23,7 @@ TOTAL_NET_PURCHASE_MAX = 100
 UNIT_SIZE = 1
 TEAM_LIST = ['Cleveland Guardians', 'Tampa Bay Rays', 'Minnesota Twins', 'Seattle Mariners', 'Texas Rangers', 'Detroit Tigers', 
             'Chicago Cubs', 'Pittsburgh Pirates']
+MOMENTUM_CAP = 20
 
 class KalshiMarketTrading:
 
@@ -35,7 +36,10 @@ class KalshiMarketTrading:
         self.kalshi_api_url = kalshi_api_url
         self.private_key = self._load_private_key()
         self.team_buy_sell_count = dict()
+        self.team_last_buy = dict()
+        self.team_last_sell = dict()
         self.first_write = True
+        
         
     def _load_private_key(self):
         """Load RSA private key from file"""
@@ -115,8 +119,30 @@ class KalshiMarketTrading:
             ticker = input('Ticker: ')
 
         return self._make_authenticated_request("GET", f"/markets/{ticker}")
-    
-    def buy_shares(self, ticker, quantity, price_limit):
+
+    def calculate_momentum_quantity(self, quantity, price_limit, team, buy_order=True):
+        if buy_order:
+            price, amount = self.team_last_buy.get(team)
+        else:
+            price, amount = self.team_last_sell.get(team)
+            
+        
+        if price == price_limit:
+            cap_amount = quantity * MOMENTUM_CAP
+            quantity = amount + quantity if amount <= cap_amount else cap_amount
+            print(f'Momentum used!!! Momentum purchase for {team}: {quantity} @ {price}', flush=True)
+        else:
+            if buy_order:
+                self.team_last_buy[team] = (price_limit, quantity)
+            else:
+                self.team_last_sell[team] = (price_limit, quantity)
+            
+    def buy_shares(self, ticker, quantity, price_limit, momentum_team=None):
+
+        # Adds previous buy amounts to the current purchase
+        if momentum_team:
+            quantity = self.calculate_momentum_quantity(quantity, price_limit, team=momentum_team, buy_order=True)
+
         # Convert price from cents to dollars
         price_dollars = price_limit / 100
         return self._make_authenticated_request("POST", "/portfolio/events/orders", {
@@ -133,7 +159,12 @@ class KalshiMarketTrading:
             "exchange_index": 0
         })
     
-    def sell_shares(self, ticker, quantity, price_limit):
+    def sell_shares(self, ticker, quantity, price_limit, momentum_team=None):
+
+        # Adds previous sell amounts to the current sell order
+        if momentum_team:
+            quantity = self.calculate_momentum_quantity(quantity, price_limit, team=momentum_team, buy_order=False)
+
         # Convert price from cents to dollars
         price_dollars = price_limit / 100
         return self._make_authenticated_request("POST", "/portfolio/events/orders", {
@@ -350,7 +381,7 @@ if __name__ == "__main__":
             # BUY SIDE
             if ask_price < buy_target:
                 try:
-                    buy_result = trader.buy_shares(kalshi_ticker, quantity=UNIT_SIZE, price_limit=ask_price)
+                    buy_result = trader.buy_shares(kalshi_ticker, quantity=UNIT_SIZE, price_limit=ask_price, momentum=True)
                     total_purchase = UNIT_SIZE * ask_price
                     all_time_team_net_purchase, all_time_net_shares_purchase = net_session_team_purchases[team]
                     all_time_team_net_purchase += total_purchase
@@ -363,7 +394,6 @@ if __name__ == "__main__":
                     print(f'!!! {team} session buy amount: ${all_time_purchase}!!!...\n', flush=True)
                             
                     # print(f"Ask price {ask_price} cents is below buy target {buy_target} cents")
-                    total_purchase = UNIT_SIZE * ask_price
                     buy_count += total_purchase
                     trader.update_buy_sell_count(team, buy_count=buy_count)
                     
