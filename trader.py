@@ -18,15 +18,15 @@ API_KEY_ID = "cc9f7a70-b6f3-482c-b573-8a77a53557eb"
 DB_URL = os.environ.get("DATABASE_URL")
 PRIVATE_KEY_PATH = 'private_key.pem'
 # PRIVATE_KEY_PATH = os.path.expanduser("~/.ssh/id_rsa_kalshi.pub")
-BUFFER = .15
-TOTAL_NET_PURCHASE_MAX = 150
+BUY_BUFFER, SELL_BUFFER = .15, .05
+TOTAL_NET_PURCHASE_MAX = 100
 UNIT_SIZE = 1
 TEAM_LIST = ['Cleveland Guardians', 'Tampa Bay Rays', 'Minnesota Twins',
              'Seattle Mariners', 'Texas Rangers', 'Detroit Tigers', 
             'Chicago Cubs', 'Pittsburgh Pirates', 'Baltimore Orioles',
             'Philadelphia Phillies']
 MOMENTUM = True
-MOMENTUM_CAP = 20
+MOMENTUM_CAP = 5
 
 
 class KalshiMarketTrading:
@@ -374,8 +374,8 @@ if __name__ == "__main__":
             expected_cents = float(expected_cents_value) if expected_cents_value else 0
 
             # Expected range
-            sell_target = expected_cents * (1 + BUFFER)
-            buy_target = expected_cents * (1 - BUFFER)
+            sell_target = expected_cents * (1 + SELL_BUFFER)
+            buy_target = expected_cents * (1 - BUY_BUFFER)
 
             ask_price = round(float(market['market']['yes_ask_dollars']) * 100, 2)
             ask_amount = market['market']['yes_ask_size_fp']
