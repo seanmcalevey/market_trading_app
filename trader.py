@@ -275,15 +275,6 @@ if __name__ == "__main__":
     # team = "Cleveland Guardians"
     with open('mlb_teams.json', 'r') as f:
         kalshi_tickers = json.load(f)
-        # kalshi_ticker = tickers.get(team)
-
-    # with open('x_value.json', 'r') as f:
-    #     team_expected_values = json.load(f)
-        # expected_cents_value = team_values.get(team)
-        # Convert to float, default to 0 if empty or missing
-        # expected_cents = float(expected_cents_value) if expected_cents_value else 0
-
-    # "KXMLB-26-PHI"
 
 
     # Initialize trader with API key
@@ -306,6 +297,8 @@ if __name__ == "__main__":
     amount_max = 10000
     net_session_purchases = 0
     net_session_team_purchases = trader.get_net_trade_table_as_json()
+    if net_session_team_purchases == None:
+        net_session_team_purchases = {t: 0 for t in TEAM_LIST}
     while (count < amount_max) and (net_session_purchases < TOTAL_NET_PURCHASE_MAX):
 
         for team in TEAM_LIST:
@@ -313,7 +306,6 @@ if __name__ == "__main__":
             kalshi_ticker = kalshi_tickers.get(team)
             market = trader.get_market(kalshi_ticker)
 
-            # expected_cents_value = team_expected_values.get(team)
             expected_cents_value = trader.get_current_team_value(team)
             expected_cents = float(expected_cents_value) if expected_cents_value else 0
 
