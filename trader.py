@@ -381,7 +381,7 @@ if __name__ == "__main__":
             # BUY SIDE
             if ask_price < buy_target:
                 try:
-                    buy_result = trader.buy_shares(kalshi_ticker, quantity=UNIT_SIZE, price_limit=ask_price, momentum=True)
+                    buy_result = trader.buy_shares(kalshi_ticker, quantity=UNIT_SIZE, price_limit=ask_price, momentum_team=team)
                     total_purchase = UNIT_SIZE * ask_price
                     all_time_team_net_purchase, all_time_net_shares_purchase = net_session_team_purchases[team]
                     all_time_team_net_purchase += total_purchase
@@ -412,7 +412,7 @@ if __name__ == "__main__":
                 # Ensures we don't sell more than we buy
                 if buy_count > sell_count:
                     try:
-                        sell_result = trader.sell_shares(kalshi_ticker, quantity=UNIT_SIZE, price_limit=bid_price)
+                        sell_result = trader.sell_shares(kalshi_ticker, quantity=UNIT_SIZE, price_limit=bid_price, momentum_team=team)
                         # print(f"Sell order: {sell_result}")
                         total_sell = UNIT_SIZE * bid_price
                         all_time_team_net_purchase, all_time_net_shares_purchase = net_session_team_purchases[team]
