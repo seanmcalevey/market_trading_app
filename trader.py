@@ -29,11 +29,12 @@ TEAM_LIST = ['Cleveland Guardians', 'Tampa Bay Rays', 'Minnesota Twins',
 # TEAM_LIST = ['Texas Rangers']
 MOMENTUM = True
 MOMENTUM_CAP = 5
+DEBUG = False
 
 
 class KalshiMarketTrading:
 
-    def __init__(self, api_key_id, private_key_path, kalshi_api_url=KALSHI_API_URL):
+    def __init__(self, api_key_id, private_key_path, kalshi_api_url=KALSHI_API_URL, debug=DEBUG):
         """Initialize Kalshi trader with API key authentication"""
         self.api_key_id = api_key_id
         self.private_key_path = private_key_path
@@ -47,6 +48,7 @@ class KalshiMarketTrading:
         self.open_orders_by_team = {t: None for t in TEAM_LIST}
         self.first_write = True
         self.first_write_orders = True
+        self.debug = debug
         
         
     def _load_private_key(self):
@@ -303,7 +305,7 @@ class KalshiMarketTrading:
                             print(f"Error: open_shares ({open_orders}) for {team} does not match total reduced_shares ({reduced_shares}) upon closure of order_id {order_id}", flush=True)
                             print(f"\n\n !!! ERROR !!! \n\n")
                         else:
-                            print(f'Successfully cancelled open order {order_id} for team {team}...')
+                            self.debugPrint(f'Successfully cancelled open order {order_id} for team {team}...')
 
         return net_transaction_amount, net_fees_amount, filled_orders
 
@@ -312,7 +314,7 @@ class KalshiMarketTrading:
     def get_net_trade_table_as_json(self):
         net_table_dict = {}
         try:
-            print("\nConnecting to the database to get net trade table data...")
+            self.debugPrint("\nConnecting to the database to get net trade table data...")
             conn = psycopg2.connect(DB_URL)
             cur = conn.cursor()
             # Select all rows from team_values
@@ -330,7 +332,7 @@ class KalshiMarketTrading:
 
             cur.close()
             conn.close()
-            print('Fetched net trade data from net trade table')
+            self.debugPrint('Fetched net trade data from net trade table')
 
             return net_table_dict
 
@@ -380,11 +382,11 @@ class KalshiMarketTrading:
                     """,
                     (team, today_date_str, net_amount, net_shares)
                 )
-                
+
             conn.commit()
             cur.close()
             conn.close()
-            print(f"Successfully saved net trade data", flush=True)
+            self.debugPrint(f"Successfully saved net trade data")
 
         except Exception as e:
             print(f"Database operation failed: {e}", flush=True)
@@ -398,7 +400,7 @@ class KalshiMarketTrading:
     def get_open_orders_as_json(self):
         open_orders_dict = {}
         try:
-            print("\nConnecting to the database to get open orders data...")
+            self.debugPrint("\nConnecting to the database to get open orders data...")
             conn = psycopg2.connect(DB_URL)
             cur = conn.cursor()
             # Select all rows from open_orders
@@ -413,7 +415,7 @@ class KalshiMarketTrading:
 
             cur.close()
             conn.close()
-            print('Fetched open orders data from open orders table')
+            self.debugPrint('Fetched open orders data from open orders table')
 
             return open_orders_dict
 
@@ -484,6 +486,12 @@ class KalshiMarketTrading:
 
         return adj_unit_size
 
+    def debugPrint(self, message):
+        if self.debug:
+            print(message, flush=True)
+
+
+
 
 if __name__ == "__main__":
 
@@ -499,8 +507,8 @@ if __name__ == "__main__":
     
     # Get portfolio
     portfolio = trader.get_portfolio()
-    print("Portfolio: ")
-    print(portfolio)
+    trader.debugPrint("Portfolio: ")
+    trader.debugPrint(portfolio)
 
     # Buy/sell counts
     team_buy_sell_count = {}
@@ -552,11 +560,11 @@ if __name__ == "__main__":
             # Status every x runs
             every_x_runs = 10
             if count % every_x_runs == 0:
-                print(f"Team: {team}", flush=True)
-                print(f"Buy target: {round(buy_target, 2)} cents", flush=True)
-                print(f"Sell target: {round(sell_target, 2)} cents", flush=True)
-                print(f"Market ask (price, amount): {round(ask_price, 2)} cents, {ask_amount} shares", flush=True)
-                print(f"Market bid (price, amount): {round(bid_price, 2)} cents, {bid_amount} shares", flush=True)
+                trader.debugPrint(f"Team: {team}")
+                trader.debugPrint(f"Buy target: {round(buy_target, 2)} cents")
+                trader.debugPrint(f"Sell target: {round(sell_target, 2)} cents")
+                trader.debugPrint(f"Market ask (price, amount): {round(ask_price, 2)} cents, {ask_amount} shares")
+                trader.debugPrint(f"Market bid (price, amount): {round(bid_price, 2)} cents, {bid_amount} shares")
     
 
 
@@ -597,8 +605,8 @@ if __name__ == "__main__":
 
             else:
 
-                print('Hit buy else block...', flush=True)
-                time.sleep(5)
+                trader.debugPrint('Hit buy else block...')
+                time.sleep(2)
 
                 # MAKER
                 open_order_ids = open_orders_dict.get(team, (None, None))
@@ -606,7 +614,7 @@ if __name__ == "__main__":
                 if open_buy_order_id:
 
                     print(f'Open buy order {open_buy_order_id} exists for {team}...', flush=True)
-                    time.sleep(5)
+                    time.sleep(2)
                     
                     net_transaction_amount, net_fees_amount, orders_filled = trader.get_and_update_order_status(open_buy_order_id)
                     if net_transaction_amount is not None:
@@ -621,7 +629,8 @@ if __name__ == "__main__":
 
                 else:
                     print(f'Open order does not exist for {team}... Creating now...', flush=True)
-                    time.sleep(5)
+                    time.sleep(2)
+
                     buy_amount, buy_quantity, shares_still_avail, order_id = trader.buy_shares(kalshi_ticker, team, quantity=MAKER_UNIT_SIZE, price_limit=buy_target, maker=True)
                     open_orders_dict[team] = (order_id, open_sell_order_id)
 
@@ -663,16 +672,13 @@ if __name__ == "__main__":
 
             else:
 
-                print('Hit sell else block...', flush=True)
-                time.sleep(5)
-
                 # MAKER
                 open_order_ids = open_orders_dict.get(team, (None, None))
                 open_buy_order_id, open_sell_order_id = open_order_ids
                 if open_sell_order_id:
 
                     print(f'Open sell order {open_sell_order_id} exists for {team}...', flush=True)
-                    time.sleep(5)
+                    time.sleep(2)
 
                     net_transaction_amount, net_fees_amount, orders_filled = trader.get_and_update_order_status(open_sell_order_id)
                     if net_transaction_amount is not None:
@@ -687,7 +693,8 @@ if __name__ == "__main__":
 
                 else:
                     print(f'Open order does not exist for {team}... Creating now...', flush=True)
-                    time.sleep(5)
+                    time.sleep(2)
+
                     sell_amount, sell_quantity, shares_still_avail, order_id = trader.sell_shares(kalshi_ticker, team, quantity=MAKER_UNIT_SIZE, price_limit=sell_target, maker=True)
                     open_orders_dict[team] = (open_buy_order_id, order_id)
 
