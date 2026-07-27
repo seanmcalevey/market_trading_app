@@ -262,6 +262,8 @@ if __name__ == "__main__":
 
             # Get buy-sell counts
             buy_count, sell_count = trader.get_buy_sell_count(team)
+            print(f'{team} buy count: {buy_count}', flush=True)
+            print(f'{team} sell count: {sell_count}', flush=True)
             
             
             # BUY SIDE
@@ -269,7 +271,8 @@ if __name__ == "__main__":
                 try:
                     buy_result = trader.buy_shares(kalshi_ticker, quantity=UNIT_SIZE, price_limit=ask_price)
                     # print(f"Buy order: {buy_result}")
-                    print(f'Bought {UNIT_SIZE} shares for {team} at {ask_price} cents.', flush=True)
+                    print(f'\n...!!! Bought {UNIT_SIZE} shares for {team} at {ask_price} cents !!!...\n', flush=True)
+                            
                     # print(f"Ask price {ask_price} cents is below buy target {buy_target} cents")
                     buy_count += UNIT_SIZE
                     trader.update_buy_sell_count(team, buy_count=buy_count)
@@ -291,7 +294,7 @@ if __name__ == "__main__":
                     try:
                         sell_result = trader.sell_shares(kalshi_ticker, quantity=UNIT_SIZE, price_limit=bid_price)
                         # print(f"Sell order: {sell_result}")
-                        print(f'Sold {UNIT_SIZE} shares for {team} at {bid_price} cents.')
+                        print(f'\n...!!! Sold {UNIT_SIZE} shares for {team} at {bid_price} cents!!!...\n')
                         # print(f"Bid price {bid_price} cents is above sell target {sell_target} cents")
                         
                         sell_count += UNIT_SIZE
