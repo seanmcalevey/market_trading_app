@@ -266,7 +266,7 @@ if __name__ == "__main__":
                     print(f'Bought {UNIT_SIZE} shares for {team} at {ask_price} cents.', flush=True)
                     # print(f"Ask price {ask_price} cents is below buy target {buy_target} cents")
                     buy_count += UNIT_SIZE
-                    self.update_buy_sell_count(team, buy_count=buy_count)
+                    trader.update_buy_sell_count(team, buy_count=buy_count)
                     
                 except Exception as e:
                     print(f'Unsuccessful buy attempt: {e}', flush=True)
@@ -289,7 +289,7 @@ if __name__ == "__main__":
                         # print(f"Bid price {bid_price} cents is above sell target {sell_target} cents")
                         
                         sell_count += UNIT_SIZE
-                        self.update_buy_sell_count(team, sell_count=sell_count)
+                        trader.update_buy_sell_count(team, sell_count=sell_count)
                         
                             
                     except Exception as e:
