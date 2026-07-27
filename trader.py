@@ -592,6 +592,10 @@ if __name__ == "__main__":
                 # MAKER
                 open_order_ids = open_orders_dict.get(team)
                 if open_order_ids:
+
+                    print(f'Open order {order_id} exists for {team}...', flush=True)
+                    time.sleep(5)
+
                     open_buy_order_id, open_sell_order_id = open_order_ids
                     net_transaction_amount, net_fees_amount, orders_filled = trader.get_and_update_order_status(open_buy_order_id)
                     if net_transaction_amount is not None:
@@ -605,6 +609,8 @@ if __name__ == "__main__":
 
 
                 else:
+                    print(f'Open order does not exist for {team}... Creating now...', flush=True)
+                    time.sleep(5)
                     buy_amount, buy_quantity, shares_still_avail, order_id = trader.buy_shares(kalshi_ticker, team, quantity=MAKER_UNIT_SIZE, price_limit=buy_target, maker=True)
 
             
@@ -651,6 +657,10 @@ if __name__ == "__main__":
                 # MAKER
                 open_order_ids = open_orders_dict.get(team)
                 if open_order_ids:
+                    
+                    print(f'Open order {order_id} exists for {team}...', flush=True)
+                    time.sleep(5)
+
                     open_buy_order_id, open_sell_order_id = open_order_ids
                     net_transaction_amount, net_fees_amount, orders_filled = trader.get_and_update_order_status(open_sell_order_id)
                     if net_transaction_amount is not None:
@@ -664,6 +674,8 @@ if __name__ == "__main__":
                 
 
                 else:
+                    print(f'Open order does not exist for {team}... Creating now...', flush=True)
+                    time.sleep(5)
                     sell_amount, sell_quantity, shares_still_avail, order_id = trader.sell_shares(kalshi_ticker, team, quantity=MAKER_UNIT_SIZE, price_limit=sell_target, maker=True)
 
 
