@@ -269,6 +269,7 @@ class KalshiMarketTrading:
             self.team_buy_sell_count[team] = {'buy': buy_count, 'sell': sell_count}
 
     def get_and_update_order_status(self, order_id):
+        net_transaction_amount, net_fees_amount, filled_orders = None, None, None
         if order_id:
             order_return_status = self._make_authenticated_request("GET", f"/portfolio/orders/{order_id}")
             order_data = order_return_status.get('order')
@@ -292,7 +293,7 @@ class KalshiMarketTrading:
                         else:
                             print(f'Successfully cancelled open order {order_id} for team {team}...')
 
-                            return net_transaction_amount, net_fees_amount, filled_orders
+        return net_transaction_amount, net_fees_amount, filled_orders
 
 
 
