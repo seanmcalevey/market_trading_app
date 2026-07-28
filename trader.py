@@ -25,7 +25,9 @@ MAKER_UNIT_SIZE, MIN_OPEN_ORDERS = 100, 25
 TEAM_LIST = ['Cleveland Guardians', 'Tampa Bay Rays', 'Minnesota Twins',
              'Seattle Mariners', 'Texas Rangers', 'Detroit Tigers', 
             'Chicago Cubs', 'Pittsburgh Pirates', 'Baltimore Orioles',
-            'Philadelphia Phillies']
+            'Philadelphia Phillies', 'Houston Astros', 'Boston Red Sox', 'Tampa Bay Rays']
+BUY_ONLY_TEAMS = ['Houston Astros', 'Boston Red Sox', 'Tampa Bay Rays']
+SELL_ONLY_TEAMS = []
 # TEAM_LIST = ['Texas Rangers']
 MOMENTUM = True
 MOMENTUM_CAP = 5
@@ -574,131 +576,136 @@ if __name__ == "__main__":
             buy_count, sell_count = trader.get_buy_sell_count(team)
             # print(f'{team} buy count: {buy_count}', flush=True)
             # print(f'{team} sell count: {sell_count}', flush=True)
+
+            no_sell = True if team in BUY_ONLY_TEAMS else False
+            no_buy = True if team in SELL_ONLY_TEAMS else False
             
             
             # BUY SIDE:
 
-            if buy_target > ask_price:
+            if not no_buy:
+                if buy_target > ask_price:
 
-                # TAKER:
+                    # TAKER:
 
-                adj_unit_size = trader.calculateMargin(tgt_price=buy_target, current_price=ask_price, unit_size=UNIT_SIZE, buy=True)
-                try:
-                    buy_amount, buy_quantity, shares_still_avail, order_id = trader.buy_shares(kalshi_ticker, team, quantity=adj_unit_size, price_limit=ask_price)
-                    all_time_team_net_purchase, all_time_net_shares_purchase = net_session_team_purchases[team]
-                    all_time_team_net_purchase += buy_amount
-                    all_time_net_shares_purchase += buy_quantity
-                    net_session_team_purchases[team] = (all_time_team_net_purchase, all_time_net_shares_purchase)
-                    all_time_purchase = round((buy_count + buy_amount) / 100, 2)
-                    net_session_purchases += all_time_purchase
-                    # print(f"Buy order: {buy_result}")
-                    print(f'\n!!! Bought {buy_quantity} shares for {team} at {ask_price} cents', flush=True)
-                    print(f'!!! {team} session buy amount: ${all_time_purchase}!!!...\n', flush=True)
-                            
-                    # print(f"Ask price {ask_price} cents is below buy target {buy_target} cents")
-                    buy_count += buy_amount
-                    trader.update_buy_sell_count(team, buy_count=buy_count)
-                    
-                except Exception as e:
-                    print(f'Unsuccessful buy attempt: {e}', flush=True)
-                    unsuccessful_attempts += 1
-                    if unsuccessful_attempts > max_unsuccessful:
-                        sys.exit()
-
-            else:
-
-                trader.debugPrint('Hit buy else block...')
-                time.sleep(2)
-
-                # MAKER
-                open_order_ids = open_orders_dict.get(team, (None, None))
-                open_buy_order_id, open_sell_order_id = open_order_ids
-                if open_buy_order_id:
-
-                    print(f'Open buy order {open_buy_order_id} exists for {team}...', flush=True)
-                    time.sleep(2)
-                    
-                    net_transaction_amount, net_fees_amount, orders_filled = trader.get_and_update_order_status(open_buy_order_id)
-                    if net_transaction_amount is not None:
-                        all_time_team_net_purchase, all_time_net_shares_purchase = net_session_team_purchases[team]
-                        all_time_team_net_purchase += net_transaction_amount
-                        all_time_net_shares_purchase += orders_filled
-                        net_session_team_purchases[team] = (all_time_team_net_purchase, all_time_net_shares_purchase)
-                        open_orders_dict[team] = (None, open_sell_order_id)
-
-                        # Add fee logic here...
-
-
-                else:
-                    print(f'Open order does not exist for {team}... Creating now...', flush=True)
-                    time.sleep(2)
-
-                    buy_amount, buy_quantity, shares_still_avail, order_id = trader.buy_shares(kalshi_ticker, team, quantity=MAKER_UNIT_SIZE, price_limit=buy_target, maker=True)
-                    open_orders_dict[team] = (order_id, open_sell_order_id)
-
-            
-
-            # SELL SIDE
-
-            if sell_target < bid_price:
-
-
-                # TAKER
-
-                adj_unit_size = trader.calculateMargin(tgt_price=buy_target, current_price=ask_price, unit_size=UNIT_SIZE, buy=False)
-
-                # Ensures we don't sell more than we buy
-                if buy_count > sell_count:
+                    adj_unit_size = trader.calculateMargin(tgt_price=buy_target, current_price=ask_price, unit_size=UNIT_SIZE, buy=True)
                     try:
-                        sell_amount, sell_quantity, shares_still_avail, order_id = trader.sell_shares(kalshi_ticker, team, quantity=adj_unit_size, price_limit=bid_price, maker=False)
-                        # print(f"Sell order: {sell_result}")
+                        buy_amount, buy_quantity, shares_still_avail, order_id = trader.buy_shares(kalshi_ticker, team, quantity=adj_unit_size, price_limit=ask_price)
                         all_time_team_net_purchase, all_time_net_shares_purchase = net_session_team_purchases[team]
-                        all_time_team_net_purchase -= sell_amount
-                        all_time_net_shares_purchase -= sell_quantity
+                        all_time_team_net_purchase += buy_amount
+                        all_time_net_shares_purchase += buy_quantity
                         net_session_team_purchases[team] = (all_time_team_net_purchase, all_time_net_shares_purchase)
-                        all_time_sell = round((sell_count + sell_amount) / 100, 2)
-                        net_session_purchases -= all_time_sell
-                        print(f'\n...!!! Sold {sell_quantity} shares for {team} at {bid_price} cents', flush=True)
-                        print(f'!!! {team} session sell amount: ${all_time_sell}!!!...\n', flush=True)
-                        # print(f"Bid price {bid_price} cents is above sell target {sell_target} cents")
+                        all_time_purchase = round((buy_count + buy_amount) / 100, 2)
+                        net_session_purchases += all_time_purchase
+                        # print(f"Buy order: {buy_result}")
+                        print(f'\n!!! Bought {buy_quantity} shares for {team} at {ask_price} cents', flush=True)
+                        print(f'!!! {team} session buy amount: ${all_time_purchase}!!!...\n', flush=True)
+                                
+                        # print(f"Ask price {ask_price} cents is below buy target {buy_target} cents")
+                        buy_count += buy_amount
+                        trader.update_buy_sell_count(team, buy_count=buy_count)
                         
-                        sell_count += sell_amount
-                        trader.update_buy_sell_count(team, sell_count=sell_count)
-                        
-                            
                     except Exception as e:
                         print(f'Unsuccessful buy attempt: {e}', flush=True)
                         unsuccessful_attempts += 1
                         if unsuccessful_attempts > max_unsuccessful:
                             sys.exit()
 
-            else:
+                else:
 
-                # MAKER
-                open_order_ids = open_orders_dict.get(team, (None, None))
-                open_buy_order_id, open_sell_order_id = open_order_ids
-                if open_sell_order_id:
-
-                    print(f'Open sell order {open_sell_order_id} exists for {team}...', flush=True)
+                    trader.debugPrint('Hit buy else block...')
                     time.sleep(2)
 
-                    net_transaction_amount, net_fees_amount, orders_filled = trader.get_and_update_order_status(open_sell_order_id)
-                    if net_transaction_amount is not None:
-                        all_time_team_net_purchase, all_time_net_shares_purchase = net_session_team_purchases[team]
-                        all_time_team_net_purchase -= net_transaction_amount
-                        all_time_net_shares_purchase -= orders_filled
-                        net_session_team_purchases[team] = (all_time_team_net_purchase, all_time_net_shares_purchase)
-                        open_orders_dict[team] = (open_buy_order_id, None)
+                    # MAKER
+                    open_order_ids = open_orders_dict.get(team, (None, None))
+                    open_buy_order_id, open_sell_order_id = open_order_ids
+                    if open_buy_order_id:
 
-                        # Add fee logic here...
-                
+                        print(f'Open buy order {open_buy_order_id} exists for {team}...', flush=True)
+                        time.sleep(2)
+                        
+                        net_transaction_amount, net_fees_amount, orders_filled = trader.get_and_update_order_status(open_buy_order_id)
+                        if net_transaction_amount is not None:
+                            all_time_team_net_purchase, all_time_net_shares_purchase = net_session_team_purchases[team]
+                            all_time_team_net_purchase += net_transaction_amount
+                            all_time_net_shares_purchase += orders_filled
+                            net_session_team_purchases[team] = (all_time_team_net_purchase, all_time_net_shares_purchase)
+                            open_orders_dict[team] = (None, open_sell_order_id)
+
+                            # Add fee logic here...
+
+
+                    else:
+                        print(f'Open order does not exist for {team}... Creating now...', flush=True)
+                        time.sleep(2)
+
+                        buy_amount, buy_quantity, shares_still_avail, order_id = trader.buy_shares(kalshi_ticker, team, quantity=MAKER_UNIT_SIZE, price_limit=buy_target, maker=True)
+                        open_orders_dict[team] = (order_id, open_sell_order_id)
+
+            
+
+            # SELL SIDE
+
+            if not no_sell:
+                if sell_target < bid_price:
+
+
+                    # TAKER
+
+                    adj_unit_size = trader.calculateMargin(tgt_price=buy_target, current_price=ask_price, unit_size=UNIT_SIZE, buy=False)
+
+                    # Ensures we don't sell more than we buy
+                    if buy_count > sell_count:
+                        try:
+                            sell_amount, sell_quantity, shares_still_avail, order_id = trader.sell_shares(kalshi_ticker, team, quantity=adj_unit_size, price_limit=bid_price, maker=False)
+                            # print(f"Sell order: {sell_result}")
+                            all_time_team_net_purchase, all_time_net_shares_purchase = net_session_team_purchases[team]
+                            all_time_team_net_purchase -= sell_amount
+                            all_time_net_shares_purchase -= sell_quantity
+                            net_session_team_purchases[team] = (all_time_team_net_purchase, all_time_net_shares_purchase)
+                            all_time_sell = round((sell_count + sell_amount) / 100, 2)
+                            net_session_purchases -= all_time_sell
+                            print(f'\n...!!! Sold {sell_quantity} shares for {team} at {bid_price} cents', flush=True)
+                            print(f'!!! {team} session sell amount: ${all_time_sell}!!!...\n', flush=True)
+                            # print(f"Bid price {bid_price} cents is above sell target {sell_target} cents")
+                            
+                            sell_count += sell_amount
+                            trader.update_buy_sell_count(team, sell_count=sell_count)
+                            
+                                
+                        except Exception as e:
+                            print(f'Unsuccessful buy attempt: {e}', flush=True)
+                            unsuccessful_attempts += 1
+                            if unsuccessful_attempts > max_unsuccessful:
+                                sys.exit()
 
                 else:
-                    print(f'Open order does not exist for {team}... Creating now...', flush=True)
-                    time.sleep(2)
 
-                    sell_amount, sell_quantity, shares_still_avail, order_id = trader.sell_shares(kalshi_ticker, team, quantity=MAKER_UNIT_SIZE, price_limit=sell_target, maker=True)
-                    open_orders_dict[team] = (open_buy_order_id, order_id)
+                    # MAKER
+                    open_order_ids = open_orders_dict.get(team, (None, None))
+                    open_buy_order_id, open_sell_order_id = open_order_ids
+                    if open_sell_order_id:
+
+                        print(f'Open sell order {open_sell_order_id} exists for {team}...', flush=True)
+                        time.sleep(2)
+
+                        net_transaction_amount, net_fees_amount, orders_filled = trader.get_and_update_order_status(open_sell_order_id)
+                        if net_transaction_amount is not None:
+                            all_time_team_net_purchase, all_time_net_shares_purchase = net_session_team_purchases[team]
+                            all_time_team_net_purchase -= net_transaction_amount
+                            all_time_net_shares_purchase -= orders_filled
+                            net_session_team_purchases[team] = (all_time_team_net_purchase, all_time_net_shares_purchase)
+                            open_orders_dict[team] = (open_buy_order_id, None)
+
+                            # Add fee logic here...
+                    
+
+                    else:
+                        print(f'Open order does not exist for {team}... Creating now...', flush=True)
+                        time.sleep(2)
+
+                        sell_amount, sell_quantity, shares_still_avail, order_id = trader.sell_shares(kalshi_ticker, team, quantity=MAKER_UNIT_SIZE, price_limit=sell_target, maker=True)
+                        open_orders_dict[team] = (open_buy_order_id, order_id)
 
 
         # UPDATE DB TABLES
