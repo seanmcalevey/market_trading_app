@@ -26,7 +26,7 @@ TEAM_LIST = ['Cleveland Guardians', 'Tampa Bay Rays', 'Minnesota Twins',
              'Seattle Mariners', 'Texas Rangers', 'Detroit Tigers', 
             'Chicago Cubs', 'Pittsburgh Pirates', 'Baltimore Orioles',
             'Philadelphia Phillies', 'Houston Astros', 'Boston Red Sox', 'Tampa Bay Rays']
-BUY_ONLY_TEAMS = ['Houston Astros', 'Boston Red Sox', 'Tampa Bay Rays']
+BUY_ONLY_TEAMS = ['Cleveland Guardians', 'Houston Astros', 'Boston Red Sox', 'Tampa Bay Rays']
 SELL_ONLY_TEAMS = []
 # TEAM_LIST = ['Texas Rangers']
 MOMENTUM = True
@@ -305,11 +305,18 @@ class KalshiMarketTrading:
             sell_count = sell_count if sell_count else 0
             self.team_buy_sell_count[team] = {'buy': buy_count, 'sell': sell_count}
 
+    def remove_team_from_session(self, team):
+        if team in TEAM_LIST:
+            TEAM_LIST.remove(team)
+            print(f'Removing {team} from session due to API failure', flush=True)
+
     def get_and_update_order_status(self, order_id, team=None):
         net_transaction_amount, net_fees_amount, filled_orders = None, None, None
         if order_id:
             order_return_status = self._make_authenticated_request("GET", f"/portfolio/orders/{order_id}")
             if not order_return_status:
+                if team:
+                    self.remove_team_from_session(team)
                 return None, None, None
 
             order_data = order_return_status.get('order')
@@ -322,25 +329,28 @@ class KalshiMarketTrading:
 
                     # Cancel the open order
                     cancel_request_return = self._make_authenticated_request("DELETE", f"/portfolio/events/orders/{order_id}")
-                    if cancel_request_return:
-                        reduced_shares = cancel_request_return.get('reduced_by')
+                    if not cancel_request_return:
+                        if team:
+                            self.remove_team_from_session(team)
+                        return None, None, None
+                    reduced_shares = cancel_request_return.get('reduced_by')
 
-                        # Normalize for comparison
-                        try:
-                            open_orders_int = int(open_orders)
-                        except (TypeError, ValueError):
-                            open_orders_int = None
-                        try:
-                            reduced_shares_int = int(reduced_shares)
-                        except (TypeError, ValueError):
-                            reduced_shares_int = None
+                    # Normalize for comparison
+                    try:
+                        open_orders_int = int(open_orders)
+                    except (TypeError, ValueError):
+                        open_orders_int = None
+                    try:
+                        reduced_shares_int = int(reduced_shares)
+                    except (TypeError, ValueError):
+                        reduced_shares_int = None
 
-                        if open_orders_int is not None and reduced_shares_int is not None and open_orders_int != reduced_shares_int:
-                            print(f"\n\n !!! ERROR !!! \n\n")
-                            print(f"Error: open_shares ({open_orders}) for {team or 'unknown team'} does not match total reduced_shares ({reduced_shares}) upon closure of order_id {order_id}", flush=True)
-                            print(f"\n\n !!! ERROR !!! \n\n")
-                        else:
-                            self.debugPrint(f'Successfully cancelled open order {order_id} for team {team}...')
+                    if open_orders_int is not None and reduced_shares_int is not None and open_orders_int != reduced_shares_int:
+                        print(f"\n\n !!! ERROR !!! \n\n")
+                        print(f"Error: open_shares ({open_orders}) for {team or 'unknown team'} does not match total reduced_shares ({reduced_shares}) upon closure of order_id {order_id}", flush=True)
+                        print(f"\n\n !!! ERROR !!! \n\n")
+                    else:
+                        self.debugPrint(f'Successfully cancelled open order {order_id} for team {team}...')
 
         return net_transaction_amount, net_fees_amount, filled_orders
 
@@ -622,6 +632,9 @@ if __name__ == "__main__":
                     adj_unit_size = trader.calculateMargin(tgt_price=buy_target, current_price=ask_price, unit_size=UNIT_SIZE, buy=True)
                     try:
                         buy_amount, buy_quantity, shares_still_avail, order_id = trader.buy_shares(kalshi_ticker, team, quantity=adj_unit_size, price_limit=ask_price)
+                        if order_id is None:
+                            trader.remove_team_from_session(team)
+                            continue
                         all_time_team_net_purchase, all_time_net_shares_purchase = net_session_team_purchases[team]
                         all_time_team_net_purchase += buy_amount
                         all_time_net_shares_purchase += buy_quantity
@@ -671,6 +684,9 @@ if __name__ == "__main__":
                         time.sleep(2)
 
                         buy_amount, buy_quantity, shares_still_avail, order_id = trader.buy_shares(kalshi_ticker, team, quantity=MAKER_UNIT_SIZE, price_limit=buy_target, maker=True)
+                        if order_id is None:
+                            trader.remove_team_from_session(team)
+                            continue
                         open_orders_dict[team] = (order_id, open_sell_order_id)
 
             
@@ -689,6 +705,9 @@ if __name__ == "__main__":
                     if buy_count > sell_count:
                         try:
                             sell_amount, sell_quantity, shares_still_avail, order_id = trader.sell_shares(kalshi_ticker, team, quantity=adj_unit_size, price_limit=bid_price, maker=False)
+                            if order_id is None:
+                                trader.remove_team_from_session(team)
+                                continue
                             # print(f"Sell order: {sell_result}")
                             all_time_team_net_purchase, all_time_net_shares_purchase = net_session_team_purchases[team]
                             all_time_team_net_purchase -= sell_amount
@@ -736,6 +755,9 @@ if __name__ == "__main__":
                         time.sleep(2)
 
                         sell_amount, sell_quantity, shares_still_avail, order_id = trader.sell_shares(kalshi_ticker, team, quantity=MAKER_UNIT_SIZE, price_limit=sell_target, maker=True)
+                        if order_id is None:
+                            trader.remove_team_from_session(team)
+                            continue
                         open_orders_dict[team] = (open_buy_order_id, order_id)
 
 
