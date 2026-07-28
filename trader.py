@@ -286,27 +286,49 @@ class KalshiMarketTrading:
             sell_count = sell_count if sell_count else 0
             self.team_buy_sell_count[team] = {'buy': buy_count, 'sell': sell_count}
 
-    def get_and_update_order_status(self, order_id):
+    def get_and_update_order_status(self, order_id, team=None):
         net_transaction_amount, net_fees_amount, filled_orders = None, None, None
         if order_id:
             order_return_status = self._make_authenticated_request("GET", f"/portfolio/orders/{order_id}")
+            if not order_return_status:
+                return None, None, None
+
             order_data = order_return_status.get('order')
             if order_data:
                 filled_orders = order_data.get('fill_count_fp')
                 open_orders = order_data.get('remaining_count_fp')
-                if float(open_orders) < MIN_OPEN_ORDERS:
+                if open_orders is not None and float(open_orders) < MIN_OPEN_ORDERS:
                     net_transaction_amount = order_data.get('maker_fill_cost_dollars')
                     net_fees_amount = order_data.get('maker_fees_dollars')
 
+                    try:
+                        net_transaction_amount = float(net_transaction_amount)
+                    except (TypeError, ValueError):
+                        net_transaction_amount = None
+
+                    try:
+                        filled_orders = int(filled_orders) if filled_orders is not None else None
+                    except (TypeError, ValueError):
+                        filled_orders = None
+
                     # Cancel the open order
-                    cancel_request_return = self._make_authenticated_request("DELETE", f"portfolio/events/orders/{order_id}")
+                    cancel_request_return = self._make_authenticated_request("DELETE", f"/portfolio/events/orders/{order_id}")
                     if cancel_request_return:
                         reduced_shares = cancel_request_return.get('reduced_by')
 
-                        # Safety check
-                        if open_orders != reduced_shares:
+                        # Normalize for comparison
+                        try:
+                            open_orders_int = int(open_orders)
+                        except (TypeError, ValueError):
+                            open_orders_int = None
+                        try:
+                            reduced_shares_int = int(reduced_shares)
+                        except (TypeError, ValueError):
+                            reduced_shares_int = None
+
+                        if open_orders_int is not None and reduced_shares_int is not None and open_orders_int != reduced_shares_int:
                             print(f"\n\n !!! ERROR !!! \n\n")
-                            print(f"Error: open_shares ({open_orders}) for {team} does not match total reduced_shares ({reduced_shares}) upon closure of order_id {order_id}", flush=True)
+                            print(f"Error: open_shares ({open_orders}) for {team or 'unknown team'} does not match total reduced_shares ({reduced_shares}) upon closure of order_id {order_id}", flush=True)
                             print(f"\n\n !!! ERROR !!! \n\n")
                         else:
                             self.debugPrint(f'Successfully cancelled open order {order_id} for team {team}...')
@@ -624,7 +646,7 @@ if __name__ == "__main__":
                         print(f'Open buy order {open_buy_order_id} exists for {team}...', flush=True)
                         time.sleep(2)
                         
-                        net_transaction_amount, net_fees_amount, orders_filled = trader.get_and_update_order_status(open_buy_order_id)
+                        net_transaction_amount, net_fees_amount, orders_filled = trader.get_and_update_order_status(open_buy_order_id, team=team)
                         if net_transaction_amount is not None:
                             all_time_team_net_purchase, all_time_net_shares_purchase = net_session_team_purchases[team]
                             all_time_team_net_purchase += net_transaction_amount
@@ -689,7 +711,7 @@ if __name__ == "__main__":
                         print(f'Open sell order {open_sell_order_id} exists for {team}...', flush=True)
                         time.sleep(2)
 
-                        net_transaction_amount, net_fees_amount, orders_filled = trader.get_and_update_order_status(open_sell_order_id)
+                        net_transaction_amount, net_fees_amount, orders_filled = trader.get_and_update_order_status(open_sell_order_id, team=team)
                         if net_transaction_amount is not None:
                             all_time_team_net_purchase, all_time_net_shares_purchase = net_session_team_purchases[team]
                             all_time_team_net_purchase -= net_transaction_amount
