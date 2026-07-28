@@ -115,6 +115,8 @@ class KalshiMarketTrading:
                 response = self.session.get(url, headers=headers, timeout=10)
             elif method == "POST":
                 response = self.session.post(url, headers=headers, json=json_data, timeout=10)
+            elif method == "DELETE":
+                response = self.session.delete(url, headers=headers, timeout=10)
             else:
                 raise ValueError(f"Unsupported HTTP method: {method}")
 
