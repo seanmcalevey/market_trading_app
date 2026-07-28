@@ -28,6 +28,7 @@ TEAM_LIST = ['Cleveland Guardians', 'Tampa Bay Rays', 'Minnesota Twins',
             'Philadelphia Phillies', 'Houston Astros', 'Boston Red Sox', 'Tampa Bay Rays']
 BUY_ONLY_TEAMS = ['Cleveland Guardians', 'Houston Astros', 'Boston Red Sox', 'Tampa Bay Rays']
 SELL_ONLY_TEAMS = []
+CANCEL_OPEN_ORDERS = True
 # TEAM_LIST = ['Texas Rangers']
 MOMENTUM = True
 MOMENTUM_CAP = 3
@@ -354,6 +355,24 @@ class KalshiMarketTrading:
 
         return net_transaction_amount, net_fees_amount, filled_orders
 
+    def cancel_all_open_orders(self, open_orders_dict):
+        if not isinstance(open_orders_dict, dict):
+            return {}
+
+        for team, order_ids in open_orders_dict.items():
+            buy_order_id, sell_order_id = order_ids if isinstance(order_ids, tuple) else (None, None)
+
+            if buy_order_id:
+                print(f'Cancelling buy open order for {team}: {buy_order_id}', flush=True)
+                self._make_authenticated_request("DELETE", f"/portfolio/events/orders/{buy_order_id}")
+                open_orders_dict[team] = (None, sell_order_id)
+
+            if sell_order_id:
+                print(f'Cancelling sell open order for {team}: {sell_order_id}', flush=True)
+                self._make_authenticated_request("DELETE", f"/portfolio/events/orders/{sell_order_id}")
+                open_orders_dict[team] = (open_orders_dict[team][0], None)
+
+        return open_orders_dict
 
 
     def get_net_trade_table_as_json(self):
@@ -569,6 +588,11 @@ if __name__ == "__main__":
     open_orders_dict = trader.get_open_orders_as_json()
     if open_orders_dict == None:
         open_orders_dict = {t: (None, None) for t in TEAM_LIST}
+
+    # Cancel open orders
+    if CANCEL_OPEN_ORDERS:
+        open_orders_dict = trader.cancel_all_open_orders(open_orders_dict)
+        
 
     # Net Session Purchases by Team
     net_session_team_purchases = trader.get_net_trade_table_as_json()
