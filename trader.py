@@ -31,7 +31,7 @@ SELL_ONLY_TEAMS = []
 CANCEL_OPEN_ORDERS = True
 # TEAM_LIST = ['Texas Rangers']
 MOMENTUM = True
-MOMENTUM_CAP = 3
+MOMENTUM_CAP = 2
 DEBUG = False
 
 
