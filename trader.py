@@ -534,16 +534,16 @@ class KalshiMarketTrading:
     def calculateMargin(tgt_price, current_price, unit_size, buy=True):
         margin = (tgt_price - current_price) / current_price if current_price != 0 else 0
         if buy:
-            if margin < 0.2:
+            if margin > 0.2:
                 adj_unit_size = UNIT_SIZE * 3
-            elif margin < 0.1:
+            elif margin > 0.1:
                 adj_unit_size = UNIT_SIZE * 2
             else:
                 adj_unit_size = UNIT_SIZE
         else:
-            if margin < -0.2:
+            if margin > -0.2:
                 adj_unit_size = UNIT_SIZE * 3
-            elif margin < -0.1:
+            elif margin > -0.1:
                 adj_unit_size = UNIT_SIZE * 2
             else:
                 adj_unit_size = UNIT_SIZE
