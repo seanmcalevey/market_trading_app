@@ -131,7 +131,26 @@ class KalshiMarketTrading:
         except Exception as e:
             print(f"Request failed: {e}", flush=True)
             return None
-    
+
+    def _parse_int(self, value):
+        if value is None:
+            return None
+        try:
+            return int(value)
+        except (TypeError, ValueError):
+            try:
+                return int(float(value))
+            except (TypeError, ValueError):
+                return None
+
+    def _parse_float(self, value):
+        if value is None:
+            return None
+        try:
+            return float(value)
+        except (TypeError, ValueError):
+            return None
+
     def get_market(self, ticker=None):
         if ticker == None:
             ticker = input('Ticker: ')
@@ -190,8 +209,8 @@ class KalshiMarketTrading:
             return 0, 0, 0, None
 
         order_id = buy_result.get('order_id')
-        shares_bought = buy_result.get('fill_count')
-        shares_still_avail = buy_result.get('remaining_count')
+        shares_bought = self._parse_int(buy_result.get('fill_count'))
+        shares_still_avail = self._parse_int(buy_result.get('remaining_count'))
 
         # print(f'Buy result return data: {buy_result}')
 
@@ -231,8 +250,8 @@ class KalshiMarketTrading:
             return 0, 0, 0, None
 
         order_id = sell_result.get('order_id')
-        shares_sold = sell_result.get('fill_count')
-        shares_still_avail = sell_result.get('remaining_count')
+        shares_sold = self._parse_int(sell_result.get('fill_count'))
+        shares_still_avail = self._parse_int(sell_result.get('remaining_count'))
 
         # print(f'Sell result return data: {sell_result}')
 
@@ -295,21 +314,11 @@ class KalshiMarketTrading:
 
             order_data = order_return_status.get('order')
             if order_data:
-                filled_orders = order_data.get('fill_count_fp')
-                open_orders = order_data.get('remaining_count_fp')
-                if open_orders is not None and float(open_orders) < MIN_OPEN_ORDERS:
-                    net_transaction_amount = order_data.get('maker_fill_cost_dollars')
-                    net_fees_amount = order_data.get('maker_fees_dollars')
-
-                    try:
-                        net_transaction_amount = float(net_transaction_amount)
-                    except (TypeError, ValueError):
-                        net_transaction_amount = None
-
-                    try:
-                        filled_orders = int(filled_orders) if filled_orders is not None else None
-                    except (TypeError, ValueError):
-                        filled_orders = None
+                filled_orders = self._parse_int(order_data.get('fill_count_fp'))
+                open_orders = self._parse_int(order_data.get('remaining_count_fp'))
+                if open_orders is not None and open_orders < MIN_OPEN_ORDERS:
+                    net_transaction_amount = self._parse_float(order_data.get('maker_fill_cost_dollars'))
+                    net_fees_amount = self._parse_float(order_data.get('maker_fees_dollars'))
 
                     # Cancel the open order
                     cancel_request_return = self._make_authenticated_request("DELETE", f"/portfolio/events/orders/{order_id}")
