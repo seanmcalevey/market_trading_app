@@ -541,9 +541,9 @@ class KalshiMarketTrading:
             else:
                 adj_unit_size = UNIT_SIZE
         else:
-            if margin > -0.2:
+            if margin < -0.2:
                 adj_unit_size = UNIT_SIZE * 3
-            elif margin > -0.1:
+            elif margin < -0.1:
                 adj_unit_size = UNIT_SIZE * 2
             else:
                 adj_unit_size = UNIT_SIZE
