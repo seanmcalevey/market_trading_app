@@ -329,7 +329,7 @@ class KalshiMarketTrading:
                     net_fees_amount = self._parse_float(order_data.get('maker_fees_dollars'))
 
                     # Cancel the open order
-                    cancel_request_return = self._make_authenticated_request("DELETE", f"/portfolio/events/orders/{order_id}")
+                    cancel_request_return = self._make_authenticated_request("DELETE", f"/portfolio/orders/{order_id}")
                     if not cancel_request_return:
                         if team:
                             self.remove_team_from_session(team)
@@ -364,12 +364,12 @@ class KalshiMarketTrading:
 
             if buy_order_id:
                 print(f'Cancelling buy open order for {team}: {buy_order_id}', flush=True)
-                self._make_authenticated_request("DELETE", f"/portfolio/events/orders/{buy_order_id}")
+                self._make_authenticated_request("DELETE", f"/portfolio/orders/{buy_order_id}")
                 open_orders_dict[team] = (None, sell_order_id)
 
             if sell_order_id:
                 print(f'Cancelling sell open order for {team}: {sell_order_id}', flush=True)
-                self._make_authenticated_request("DELETE", f"/portfolio/events/orders/{sell_order_id}")
+                self._make_authenticated_request("DELETE", f"/portfolio/orders/{sell_order_id}")
                 open_orders_dict[team] = (open_orders_dict[team][0], None)
 
         return open_orders_dict
