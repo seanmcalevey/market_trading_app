@@ -18,8 +18,8 @@ API_KEY_ID = "cc9f7a70-b6f3-482c-b573-8a77a53557eb"
 DB_URL = os.environ.get("DATABASE_URL")
 PRIVATE_KEY_PATH = 'private_key.pem'
 # PRIVATE_KEY_PATH = os.path.expanduser("~/.ssh/id_rsa_kalshi.pub")
-BUY_BUFFER, SELL_BUFFER = .2, .15
-TOTAL_NET_PURCHASE_MAX = 100
+BUY_BUFFER, SELL_BUFFER = .2, .12
+TOTAL_NET_PURCHASE_MAX = 200
 UNIT_SIZE = 1
 MAKER_UNIT_SIZE, MIN_OPEN_ORDERS = 100, 25
 TEAM_LIST = ['Cleveland Guardians', 'Tampa Bay Rays', 'Minnesota Twins',
@@ -30,7 +30,7 @@ BUY_ONLY_TEAMS = ['Houston Astros', 'Boston Red Sox', 'Tampa Bay Rays']
 SELL_ONLY_TEAMS = []
 # TEAM_LIST = ['Texas Rangers']
 MOMENTUM = True
-MOMENTUM_CAP = 5
+MOMENTUM_CAP = 3
 DEBUG = False
 
 
@@ -579,7 +579,7 @@ if __name__ == "__main__":
 
             no_sell = True if team in BUY_ONLY_TEAMS else False
             no_buy = True if team in SELL_ONLY_TEAMS else False
-            
+
             
             # BUY SIDE:
 
