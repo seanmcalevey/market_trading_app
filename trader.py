@@ -49,6 +49,7 @@ class KalshiMarketTrading:
         self.team_last_buy = dict()
         self.team_last_sell = dict()
         self.open_orders_by_team = {t: None for t in TEAM_LIST}
+        self.all_teams = list(TEAM_LIST)
         self.first_write = True
         self.first_write_orders = True
         self.debug = debug
@@ -429,7 +430,7 @@ class KalshiMarketTrading:
                 self.first_write = False
 
             today_date_str = datetime.date.today().strftime("%m/%d")
-            for team in TEAM_LIST:
+            for team in self.all_teams:
                 values = net_session_team_purchases.get(team, (0, 0))
                 try:
                     net_amount = values[0]
@@ -504,7 +505,7 @@ class KalshiMarketTrading:
 
                 self.first_write_orders = False
 
-            for team in TEAM_LIST:
+            for team in self.all_teams:
                 buy_order_id, sell_order_id = open_orders_by_team.get(team, (None, None))
                 cur.execute(
                     """
