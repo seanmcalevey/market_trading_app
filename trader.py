@@ -705,7 +705,7 @@ if __name__ == "__main__":
 
 
                     else:
-                        print(f'Open order does not exist for {team}... Creating now...', flush=True)
+                        print(f'BUY: Open order does not exist for {team}... Creating now...', flush=True)
                         time.sleep(2)
 
                         buy_amount, buy_quantity, shares_still_avail, order_id = trader.buy_shares(kalshi_ticker, team, quantity=MAKER_UNIT_SIZE, price_limit=buy_target, maker=True)
@@ -776,7 +776,7 @@ if __name__ == "__main__":
                     
 
                     else:
-                        print(f'Open order does not exist for {team}... Creating now...', flush=True)
+                        print(f'SELL: Open order does not exist for {team}... Creating now...', flush=True)
                         time.sleep(2)
 
                         sell_amount, sell_quantity, shares_still_avail, order_id = trader.sell_shares(kalshi_ticker, team, quantity=MAKER_UNIT_SIZE, price_limit=sell_target, maker=True)
